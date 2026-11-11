@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>保護ネコ支援：欲しい物資の登録</title>
+  <!-- Tailwind CSS (スタイリング用) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen py-10 px-4">
+
+  <div class="max-w-xl mx-auto bg-white shadow-md rounded-lg p-6 md:p-8">
+    <h1 class="text-2xl font-bold text-indigo-600 mb-2">支援物資の登録</h1>
+    <p class="text-sm text-gray-500 mb-6">保護猫たちのために、今必要な物資（Amazon等のアフィリエイトリンク）を登録します。</p>
+
+    <!-- 登録フォーム -->
+    <form id="wishlistForm" class="space-y-4">
+      
+      <!-- 物資名 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">物資名 <span class="text-red-500">*</span></label>
+        <input type="text" id="title" required placeholder="例: 子猫用ウェットフード 24個入り" 
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      </div>
+
+      <!-- 必要数 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">必要数 <span class="text-red-500">*</span></label>
+        <input type="number" id="target_quantity" required min="1" value="1" 
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      </div>
+
+      <!-- アフィリエイトURL -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">購入URL（アフィリエイトリンク） <span class="text-red-500">*</span></label>
+        <input type="url" id="affiliate_url" required placeholder="https://www.amazon.co.jp/... (短縮URLやアフィリンク)" 
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        <p class="text-xs text-gray-400 mt-1">※Amazonアソシエイト等で発行したリンクを入力してください。</p>
+      </div>
+
+      <!-- 対象の保護猫（animalsテーブルから動的取得） -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">対象の保護猫（任意）</label>
+        <select id="animal_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          <option value="">特定の猫なし（団体全体宛て）</option>
+        </select>
+      </div>
+
+      <!-- 理由・詳細 -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1">理由・詳細（任意）</label>
+        <textarea id="description" rows="3" placeholder="例: 離乳期の子猫がたくさん保護されたため、フードが不足しています。" 
+          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+      </div>
+
+      <!-- 緊急フラグ -->
+      <div class="flex items-center gap-2 pt-2">
+        <input type="checkbox" id="is_urgent" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
+        <label for="is_urgent" class="text-sm font-medium text-red-600">🚨 緊急で必要（目立つようにSOS表示します）</label>
+      </div>
+
+      <!-- 送信ボタン -->
+      <button type="submit" id="submitBtn" 
+        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-md transition duration-200 mt-4">
+        物資を登録する
+      </button>
+    </form>
+
+    <!-- 登録完了メッセージ -->
+    <div id="messageArea" class="mt-4 hidden p-3 rounded-md text-sm text-center"></div>
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. Supabaseクライアントの初期化
+    // ==========================================
+    // ※ ご自身のSupabaseプロジェクトのURLとAnon Keyに書き換えてください
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // DOM要素
+    const wishlistForm = document.getElementById('wishlistForm');
+    const animalSelect = document.getElementById('animal_id');
+    const messageArea = document.getElementById('messageArea');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // ==========================================
+    // 2. ページ読み込み時の処理（猫リストの取得 & ログイン確認）
+    // ==========================================
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // ログインユーザーのセッションチェック
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+          console.warn('ログインしていません。テスト時はRLSポリシーやログイン状態にご注意ください。');
+        }
+
+        // animalsテーブルから保護猫リストを取得してプルダウンにセット
+        const { data: animals, error } = await supabaseClient
+          .from('animals')
+          .select('id, name')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        if (animals) {
+          animals.forEach(animal => {
+            const option = document.createElement('option');
+            option.value = animal.id;
+            option.textContent = animal.name;
+            animalSelect.appendChild(option);
+          });
+        }
+      } catch (err) {
+        console.error('初期化エラー:', err.message);
+      }
+    });
+
+    // ==========================================
+    // 3. フォーム送信処理（DBへインサート）
+    // ==========================================
+    wishlistForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.textContent = '登録中...';
+      messageArea.classList.add('hidden');
+
+      try {
+        // ログイン中のユーザーIDを取得
+        const { data: { user } } = await supabaseClient.auth.getUser();
+        const userId = user ? user.id : null;
+
+        // フォームの値を取得
+        const title = document.getElementById('title').value;
+        const target_quantity = parseInt(document.getElementById('target_quantity').value, 10);
+        const affiliate_url = document.getElementById('affiliate_url').value;
+        const animal_id = document.getElementById('animal_id').value || null;
+        const description = document.getElementById('description').value || null;
+        const is_urgent = document.getElementById('is_urgent').checked;
+
+        // wishlist_items テーブルに挿入
+        const { error } = await supabaseClient
+          .from('wishlist_items')
+          .insert([{
+            title,
+            target_quantity,
+            current_quantity: 0, // 初期値は0
+            affiliate_url,
+            animal_id,
+            description,
+            is_urgent,
+            created_by: userId,  // profiles(id) と紐付け
+            status: 'active'
+          }]);
+
+        if (error) throw error;
+
+        // 成功メッセージ
+        messageArea.textContent = '✅ 欲しい物資の登録が完了しました！';
+        messageArea.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-50 text-green-700';
+        messageArea.classList.remove('hidden');
+
+        // フォームをリセット
+        wishlistForm.reset();
+
+      } catch (err) {
+        console.error('登録エラー:', err);
+        messageArea.textContent = `❌ エラーが発生しました: ${err.message}`;
+        messageArea.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-50 text-red-700';
+        messageArea.classList.remove('hidden');
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.textContent = '物資を登録する';
+      }
+    });
+  </script>
+</body>
+</html>

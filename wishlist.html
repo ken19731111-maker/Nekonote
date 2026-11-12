@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nekonote - 保護猫たちの欲しいものリスト</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Supabase JS Client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-amber-50/40 text-gray-800 min-h-screen flex flex-col">
+
+  <!-- ヘッダー -->
+  <header class="bg-white shadow-sm sticky top-0 z-10">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">🐾</span>
+        <h1 class="text-xl font-bold text-amber-800 tracking-wide">Nekonote（ネコノテ）</h1>
+      </div>
+      <!-- 管理者用フォームへのリンク（必要に応じて表示） -->
+      <a href="wishlist_form.html" class="text-xs text-gray-500 hover:text-amber-700 border border-gray-200 rounded-full px-3 py-1.5 transition">
+        団体スタッフ用登録
+      </a>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ -->
+  <main class="max-w-4xl mx-auto px-4 py-8 flex-grow w-full">
+    
+    <!-- イントロダクション -->
+    <div class="bg-white rounded-xl p-6 shadow-sm border border-amber-100 mb-8 text-center">
+      <h2 class="text-lg md:text-xl font-bold text-gray-800 mb-2">保護猫たちのために、あなたの「手」を貸してください</h2>
+      <p class="text-sm text-gray-600 leading-relaxed">
+        現在現場で不足しているフードや日用品のリストです。<br class="hidden sm:inline">
+        下のボタンからAmazonや楽天市場でご購入いただくと、サイト運営費の支援にも繋がります。
+      </p>
+    </div>
+
+    <!-- フィルター・ステータス表示 -->
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="font-bold text-gray-700 flex items-center gap-1.5">
+        <span>📦 現在募集中の物資</span>
+        <span id="itemCount" class="bg-amber-100 text-amber-800 text-xs px-2 py-0.5 rounded-full">0件</span>
+      </h3>
+      <label class="flex items-center gap-1.5 text-sm text-gray-600 cursor-pointer">
+        <input type="checkbox" id="urgentOnly" class="rounded text-amber-600 focus:ring-amber-500">
+        <span>🚨 緊急のみ表示</span>
+      </label>
+    </div>
+
+    <!-- ローディング表示 -->
+    <div id="loading" class="text-center py-12 text-gray-500">
+      読み込み中...
+    </div>
+
+    <!-- 物資リストコンテナ -->
+    <div id="wishlistContainer" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <!-- JavaScriptでここにカードが挿入されます -->
+    </div>
+
+  </main>
+
+  <!-- フッター -->
+  <footer class="bg-white border-t border-gray-200 mt-12 py-6 text-center text-xs text-gray-500">
+    <p>Nekonote - 保護猫ボランティア支援プラットフォーム</p>
+    <p class="mt-1">※本サイトのリンク経由でのご購入は、保護活動およびシステム維持費に充てられます。</p>
+  </footer>
+
+  <script>
+    // ==========================================
+    // 1. Supabase ＆ アフィリエイト設定
+    // ==========================================
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
+    
+    // ご自身のアフィリエイトIDを設定すると、商品名から自動で検索リンクを生成できます
+    const AMAZON_ASSOCIATE_TAG = 'your-tag-22'; 
+    const RAKUTEN_AFFILIATE_ID = 'your-rakuten-id';
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let allItems = []; // 取得したデータを保持
+
+    // DOM要素
+    const container = document.getElementById('wishlistContainer');
+    const loading = document.getElementById('loading');
+    const itemCount = document.getElementById('itemCount');
+    const urgentOnlyCheckbox = document.getElementById('urgentOnly');
+
+    // ==========================================
+    // 2. データの取得（animalsテーブルも結合して猫の名前を取得）
+    // ==========================================
+    async function fetchWishlistItems() {
+      try {
+        loading.classList.remove('hidden');
+        container.innerHTML = '';
+
+        // statusが'active'のものを、緊急フラグ優先・新しい順で取得
+        const { data, error } = await supabaseClient
+          .from('wishlist_items')
+          .select(`
+            *,
+            animals ( name )
+          `)
+          .eq('status', 'active')
+          .order('is_urgent', { ascending: false })
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        allItems = data || [];
+        renderItems();
+
+      } catch (err) {
+        console.error('データ取得エラー:', err);
+        container.innerHTML = `<p class="col-span-full text-center text-red-500 py-8">データの読み込みに失敗しました。</p>`;
+      } finally {
+        loading.classList.add('hidden');
+      }
+    }
+
+    // ==========================================
+    // 3. 画面への描画処理
+    // ==========================================
+    function renderItems() {
+      const showUrgentOnly = urgentOnlyCheckbox.checked;
+      const filteredItems = showUrgentOnly 
+        ? allItems.filter(item => item.is_urgent) 
+        : allItems;
+
+      itemCount.textContent = `${filteredItems.length}件`;
+      container.innerHTML = '';
+
+      if (filteredItems.length === 0) {
+        container.innerHTML = `<p class="col-span-full text-center text-gray-500 py-10 bg-white rounded-lg border border-gray-100">現在募集中の物資はありません。ありがとうございます！</p>`;
+        return;
+      }
+
+      filteredItems.forEach(item => {
+        // 達成率の計算
+        const progress = Math.min(100, Math.round((item.current_quantity / item.target_quantity) * 100));
+        const remaining = Math.max(0, item.target_quantity - item.current_quantity);
+        
+        // 猫の名前（紐づいている場合）
+        const catBadge = item.animals 
+          ? `<span class="inline-block bg-amber-100 text-amber-800 text-xs font-medium px-2.5 py-0.5 rounded-full">🐱 ${escapeHtml(item.animals.name)} ちゃん用</span>` 
+          : `<span class="inline-block bg-gray-100 text-gray-600 text-xs font-medium px-2.5 py-0.5 rounded-full">🏠 団体全体用</span>`;
+
+        // 緊急バッジ
+        const urgentBadge = item.is_urgent 
+          ? `<span class="inline-block bg-red-100 text-red-600 text-xs font-bold px-2.5 py-0.5 rounded-full animate-pulse">🚨 緊急SOS</span>` 
+          : '';
+
+        // 検索リンクの自動生成（団体が直接URLを入れていればそちらを優先、なければ商品名から検索リンク生成）
+        const encodedTitle = encodeURIComponent(item.title);
+        const amazonUrl = item.affiliate_url && item.affiliate_url.includes('amazon') 
+          ? item.affiliate_url 
+          : `https://www.amazon.co.jp/s?k=${encodedTitle}&tag=${AMAZON_ASSOCIATE_TAG}`;
+        
+        const rakutenUrl = item.affiliate_url && item.affiliate_url.includes('rakuten')
+          ? item.affiliate_url
+          : `https://search.rakuten.co.jp/search/mall/${encodedTitle}/?scid=af_pc_etc&rafcid=${RAKUTEN_AFFILIATE_ID}`;
+
+        // カードHTMLの組み立て
+        const card = document.createElement('div');
+        card.className = `bg-white rounded-xl p-5 shadow-sm border ${item.is_urgent ? 'border-red-300 ring-1 ring-red-100' : 'border-gray-200'} flex flex-col justify-between transition hover:shadow-md`;
+        
+        card.innerHTML = `
+          <div>
+            <!-- バッジエリア -->
+            <div class="flex flex-wrap gap-1.5 mb-2.5">
+              ${urgentBadge}
+              ${catBadge}
+            </div>
+
+            <!-- 物資名 -->
+            <h4 class="text-lg font-bold text-gray-800 mb-1.5 leading-snug">${escapeHtml(item.title)}</h4>
+            
+            <!-- 詳細理由 -->
+            ${item.description ? `<p class="text-sm text-gray-600 mb-4 line-clamp-3">${escapeHtml(item.description)}</p>` : '<div class="mb-4"></div>'}
+          </div>
+
+          <div>
+            <!-- 進捗バー -->
+            <div class="mb-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
+              <div class="flex justify-between text-xs font-medium mb-1">
+                <span class="text-gray-600">集まった数: <strong class="text-gray-900 text-sm">${item.current_quantity}</strong> / ${item.target_quantity} 個</span>
+                <span class="text-amber-700 font-bold">あと ${remaining} 個</span>
+              </div>
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="bg-amber-500 h-2 rounded-full transition-all duration-500" style="width: ${progress}%"></div>
+              </div>
+            </div>
+
+            <!-- アフィリエイト購入ボタン -->
+            <div class="grid grid-cols-2 gap-2 mb-2.5">
+              <a href="${amazonUrl}" target="_blank" rel="noopener noreferrer" 
+                class="flex items-center justify-center gap-1 bg-[#FF9900] hover:bg-[#e68a00] text-white font-bold text-xs py-2.5 px-3 rounded-lg transition text-center shadow-sm">
+                <span>Amazonで支援</span>
+                <span class="text-[10px]">↗</span>
+              </a>
+              <a href="${rakutenUrl}" target="_blank" rel="noopener noreferrer" 
+                class="flex items-center justify-center gap-1 bg-[#BF0000] hover:bg-[#a60000] text-white font-bold text-xs py-2.5 px-3 rounded-lg transition text-center shadow-sm">
+                <span>楽天市場で支援</span>
+                <span class="text-[10px]">↗</span>
+              </a>
+            </div>
+
+            <!-- 支援完了報告ボタン -->
+            <button onclick="reportSupport('${item.id}', ${item.current_quantity}, ${item.target_quantity})" 
+              class="w-full bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-medium text-xs py-2 px-3 rounded-lg transition flex items-center justify-center gap-1">
+              <span>🎁 購入・支援したらここを押す（+1）</span>
+            </button>
+          </div>
+        `;
+
+        container.appendChild(card);
+      });
+    }
+
+    // ==========================================
+    // 4. 「支援したよ！」カウントアップ処理
+    // ==========================================
+    async function reportSupport(itemId, currentQty, targetQty) {
+      if (!confirm('この物資をご購入・ご支援いただきましたか？\n（「OK」を押すと、現在の支援数に +1 反映されます）')) {
+        return;
+      }
+
+      const newQty = currentQty + 1;
+      // 目標数に達したらステータスを 'completed' に変更する（任意）
+      const newStatus = newQty >= targetQty ? 'completed' : 'active';
+
+      try {
+        const { error } = await supabaseClient
+          .from('wishlist_items')
+          .update({ 
+            current_quantity: newQty,
+            status: newStatus
+          })
+          .eq('id', itemId);
+
+        if (error) throw error;
+
+        alert('温かいご支援ありがとうございます！リストに反映されました🐾');
+        fetchWishlistItems(); // リストを再読み込み
+
+      } catch (err) {
+        console.error('更新エラー:', err);
+        alert('更新に失敗しました。SupabaseのRLS（更新権限）設定をご確認ください。');
+      }
+    }
+
+    // XSS対策用エスケープ関数
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+      });
+    }
+
+    // イベントリスナー
+    urgentOnlyCheckbox.addEventListener('change', renderItems);
+
+    // 初期読み込み
+    window.addEventListener('DOMContentLoaded', fetchWishlistItems);
+  </script>
+</body>
+</html>

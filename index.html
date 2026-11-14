@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Nekonote - 団体スタッフ用・物資登録</title>
+  <title>Nekonote - 団体スタッフ用・物資管理</title>
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS Client -->
@@ -78,15 +78,16 @@
     </div>
 
     <!-- ==========================================
-         2. ログイン成功時に表示される「物資登録フォーム」
+         2. ログイン成功時に表示される「管理ダッシュボード」
          ========================================== -->
-    <div id="formSection" class="hidden">
+    <div id="formSection" class="hidden space-y-8">
       <!-- ログインユーザー情報バー -->
-      <div class="bg-amber-100/70 text-amber-900 text-xs px-4 py-2.5 rounded-lg mb-6 flex justify-between items-center">
+      <div class="bg-amber-100/70 text-amber-900 text-xs px-4 py-2.5 rounded-lg flex justify-between items-center">
         <span>✅ ログイン中: <strong id="userEmailDisplay"></strong></span>
         <span>認証済みスタッフ</span>
       </div>
 
+      <!-- 新規登録フォームカード -->
       <div class="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-gray-200">
         <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">📦 新しい欲しい物資を登録する</h2>
 
@@ -164,6 +165,36 @@
           </div>
         </form>
       </div>
+
+      <!-- ==========================================
+           3. 登録済みの物資一覧（管理・募集終了・削除）
+           ========================================== -->
+      <div class="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-gray-200">
+        <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
+          <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
+            <span>📋 登録済みの物資一覧</span>
+            <span id="managedCount" class="bg-gray-100 text-gray-700 text-xs px-2.5 py-0.5 rounded-full">0件</span>
+          </h2>
+          <button type="button" onclick="loadManagedItems()" class="text-xs text-amber-700 hover:underline">
+            🔄 最新に更新
+          </button>
+        </div>
+
+        <p class="text-xs text-gray-500 mb-4">
+          ※「募集終了にする」を押すと一般公開ページから非表示になります（後から再募集も可能です）。
+        </p>
+
+        <!-- ローディング表示 -->
+        <div id="managedLoading" class="text-center py-8 text-sm text-gray-500 hidden">
+          登録データを読み込み中...
+        </div>
+
+        <!-- 登録済みリストコンテナ -->
+        <div id="managedItemsList" class="space-y-3">
+          <!-- JavaScriptでここに管理用カードが挿入されます -->
+        </div>
+      </div>
+
     </div>
 
   </main>
@@ -192,8 +223,12 @@
     const authSuccess = document.getElementById('authSuccess');
     const wishlistForm = document.getElementById('wishlistForm');
 
+    const managedItemsList = document.getElementById('managedItemsList');
+    const managedLoading = document.getElementById('managedLoading');
+    const managedCount = document.getElementById('managedCount');
+
     let currentUser = null;
-    let isSignupMode = false; // false = ログイン, true = 新規登録
+    let isSignupMode = false;
 
     // ==========================================
     // 2. ログイン / 新規登録 タブ切り替え
@@ -243,6 +278,7 @@
         
         loadAnimals();
         loadTitleHistory();
+        loadManagedItems(); // 登録済み物資一覧を読み込む
       } else {
         loginSection.classList.remove('hidden');
         formSection.classList.add('hidden');
@@ -267,7 +303,6 @@
 
       try {
         if (isSignupMode) {
-          // 新規登録（Sign Up）
           const { data, error } = await supabaseClient.auth.signUp({
             email,
             password
@@ -275,16 +310,13 @@
 
           if (error) throw error;
 
-          // Supabaseのメール確認設定がONの場合はsessionがnullで返る
           if (data.user && !data.session) {
             authSuccess.textContent = '確認メールを送信しました！メール内のリンクをクリックして登録を完了してください。';
             authSuccess.classList.remove('hidden');
           } else {
-            // メール確認がOFFの場合はそのまま自動ログイン状態になる
             authForm.reset();
           }
         } else {
-          // ログイン（Sign In）
           const { error } = await supabaseClient.auth.signInWithPassword({
             email,
             password
@@ -396,6 +428,9 @@
         alert('欲しい物資を登録しました！公開ページ（wishlist.html）に反映されています🐾');
         wishlistForm.reset();
         document.getElementById('targetQuantity').value = 3;
+        
+        // 下部の登録済み一覧を再読み込み
+        loadManagedItems();
 
       } catch (err) {
         console.error('登録エラー:', err);
@@ -405,6 +440,143 @@
         submitBtn.textContent = 'この内容で物資リストに登録する';
       }
     });
+
+    // ==========================================
+    // 7. 登録済み物資一覧の取得・募集終了・削除処理
+    // ==========================================
+    async function loadManagedItems() {
+      if (!currentUser) return;
+
+      managedLoading.classList.remove('hidden');
+      managedItemsList.innerHTML = '';
+
+      try {
+        // 自分が登録した物資をすべて取得（募集中・募集終了どちらも表示）
+        const { data, error } = await supabaseClient
+          .from('wishlist_items')
+          .select(`
+            *,
+            animals ( name )
+          `)
+          .eq('created_by', currentUser.id)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        const items = data || [];
+        managedCount.textContent = `${items.length}件`;
+
+        if (items.length === 0) {
+          managedItemsList.innerHTML = `
+            <p class="text-center text-sm text-gray-400 py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+              まだ登録されている物資はありません。上のフォームから登録してください。
+            </p>
+          `;
+          return;
+        }
+
+        items.forEach(item => {
+          const isActive = item.status === 'active';
+          const statusBadge = isActive
+            ? `<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">🟢 募集中</span>`
+            : `<span class="bg-gray-200 text-gray-600 text-xs font-bold px-2 py-0.5 rounded-full">⚪ 募集終了</span>`;
+
+          const urgentBadge = item.is_urgent
+            ? `<span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">🚨 緊急</span>`
+            : '';
+
+          const catInfo = item.animals
+            ? `🐱 ${escapeHtml(item.animals.name)} ちゃん用`
+            : `🏠 団体全体用`;
+
+          const row = document.createElement('div');
+          row.className = `p-4 rounded-lg border ${isActive ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200 opacity-75'} flex flex-col sm:flex-row sm:items-center justify-between gap-4`;
+
+          row.innerHTML = `
+            <div class="space-y-1">
+              <div class="flex flex-wrap items-center gap-1.5">
+                ${statusBadge}
+                ${urgentBadge}
+                <span class="text-xs text-gray-500">${catInfo}</span>
+              </div>
+              <h3 class="font-bold text-gray-800 text-sm sm:text-base">${escapeHtml(item.title)}</h3>
+              <p class="text-xs text-gray-600">
+                現在の支援数: <strong>${item.current_quantity}</strong> / ${item.target_quantity} 個
+              </p>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              ${isActive ? `
+                <button type="button" onclick="toggleItemStatus('${item.id}', 'completed')"
+                  class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 font-bold px-3 py-2 rounded-lg transition">
+                  ✅ 募集終了にする
+                </button>
+              ` : `
+                <button type="button" onclick="toggleItemStatus('${item.id}', 'active')"
+                  class="text-xs bg-white hover:bg-gray-100 text-gray-700 border border-gray-300 font-medium px-3 py-2 rounded-lg transition">
+                  🔄 再募集する
+                </button>
+              `}
+              <button type="button" onclick="deleteItem('${item.id}', '${escapeHtml(item.title)}')"
+                class="text-xs bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium px-3 py-2 rounded-lg transition">
+                🗑️ 削除
+              </button>
+            </div>
+          `;
+
+          managedItemsList.appendChild(row);
+        });
+
+      } catch (err) {
+        console.error('管理リスト取得エラー:', err);
+        managedItemsList.innerHTML = `<p class="text-xs text-red-500 py-4 text-center">一覧の取得に失敗しました: ${err.message}</p>`;
+      } finally {
+        managedLoading.classList.add('hidden');
+      }
+    }
+
+    // 募集終了 / 再募集の切り替え
+    async function toggleItemStatus(itemId, newStatus) {
+      const actionText = newStatus === 'completed' ? '募集終了' : '再募集';
+      if (!confirm(`この物資を「${actionText}」に変更しますか？`)) return;
+
+      try {
+        const { error } = await supabaseClient
+          .from('wishlist_items')
+          .update({ status: newStatus })
+          .eq('id', itemId);
+
+        if (error) throw error;
+        loadManagedItems();
+      } catch (err) {
+        alert('ステータスの更新に失敗しました: ' + err.message);
+      }
+    }
+
+    // 物資の完全削除
+    async function deleteItem(itemId, title) {
+      if (!confirm(`「${title}」を完全に削除しますか？\n（※この操作は元に戻せません）`)) return;
+
+      try {
+        const { error } = await supabaseClient
+          .from('wishlist_items')
+          .delete()
+          .eq('id', itemId);
+
+        if (error) throw error;
+        loadManagedItems();
+      } catch (err) {
+        alert('削除に失敗しました: ' + err.message);
+      }
+    }
+
+    // XSS対策用エスケープ関数
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+      });
+    }
 
     window.addEventListener('DOMContentLoaded', checkAuthState);
   </script>

@@ -33,31 +33,44 @@
   <main class="max-w-3xl mx-auto px-4 py-8 flex-grow w-full">
 
     <!-- ==========================================
-         1. 未ログイン時に表示される「ログイン画面」
+         1. 未ログイン時に表示される「ログイン・新規登録画面」
          ========================================== -->
     <div id="loginSection" class="max-w-md mx-auto bg-white rounded-xl p-6 md:p-8 shadow-sm border border-amber-100 mt-6">
-      <div class="text-center mb-6">
+      <div class="text-center mb-5">
         <span class="text-3xl">🔐</span>
-        <h2 class="text-xl font-bold text-gray-800 mt-2">団体スタッフ ログイン</h2>
-        <p class="text-xs text-gray-500 mt-1">物資の登録・管理を行うにはログインしてください</p>
+        <h2 id="authTitle" class="text-xl font-bold text-gray-800 mt-2">団体スタッフ ログイン</h2>
+        <p id="authSubtitle" class="text-xs text-gray-500 mt-1">物資の登録・管理を行うにはログインしてください</p>
       </div>
 
-      <form id="loginForm" class="space-y-4">
+      <!-- ログイン / 新規登録 切り替えタブ -->
+      <div class="grid grid-cols-2 bg-gray-100 p-1 rounded-lg mb-6 text-sm font-bold">
+        <button type="button" id="tabLogin" class="py-2 rounded-md bg-white text-amber-800 shadow-sm transition">
+          ログイン
+        </button>
+        <button type="button" id="tabSignup" class="py-2 rounded-md text-gray-500 hover:text-gray-700 transition">
+          新規登録
+        </button>
+      </div>
+
+      <form id="authForm" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
-          <input type="email" id="loginEmail" required placeholder="staff@example.com"
+          <input type="email" id="authEmail" required placeholder="staff@example.com"
             class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
         </div>
 
         <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">パスワード</label>
-          <input type="password" id="loginPassword" required placeholder="••••••••"
+          <label class="block text-sm font-medium text-gray-700 mb-1">パスワード（6文字以上）</label>
+          <input type="password" id="authPassword" required minlength="6" placeholder="••••••••"
             class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
         </div>
 
-        <p id="loginError" class="text-xs text-red-600 hidden bg-red-50 p-2.5 rounded-lg border border-red-200"></p>
+        <!-- エラーメッセージ -->
+        <p id="authError" class="text-xs text-red-600 hidden bg-red-50 p-2.5 rounded-lg border border-red-200"></p>
+        <!-- 完了・案内メッセージ -->
+        <p id="authSuccess" class="text-xs text-green-700 hidden bg-green-50 p-2.5 rounded-lg border border-green-200"></p>
 
-        <button type="submit" id="loginSubmitBtn"
+        <button type="submit" id="authSubmitBtn"
           class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-sm">
           ログインする
         </button>
@@ -159,8 +172,8 @@
     // ==========================================
     // 1. Supabase 初期設定
     // ==========================================
-    const SUPABASE_URL = 'https://fknneasutspaonhvmsae.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_bXjpXwx8EY2PBn3E6FqT8A_3s18sjFJ';
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // DOM要素
@@ -168,20 +181,53 @@
     const formSection = document.getElementById('formSection');
     const logoutBtn = document.getElementById('logoutBtn');
     const userEmailDisplay = document.getElementById('userEmailDisplay');
-    const loginForm = document.getElementById('loginForm');
-    const loginError = document.getElementById('loginError');
+    
+    const tabLogin = document.getElementById('tabLogin');
+    const tabSignup = document.getElementById('tabSignup');
+    const authTitle = document.getElementById('authTitle');
+    const authSubtitle = document.getElementById('authSubtitle');
+    const authSubmitBtn = document.getElementById('authSubmitBtn');
+    const authForm = document.getElementById('authForm');
+    const authError = document.getElementById('authError');
+    const authSuccess = document.getElementById('authSuccess');
     const wishlistForm = document.getElementById('wishlistForm');
 
     let currentUser = null;
+    let isSignupMode = false; // false = ログイン, true = 新規登録
 
     // ==========================================
-    // 2. 認証状態の監視（ログイン・ログアウト切り替え）
+    // 2. ログイン / 新規登録 タブ切り替え
+    // ==========================================
+    function switchAuthMode(signup) {
+      isSignupMode = signup;
+      authError.classList.add('hidden');
+      authSuccess.classList.add('hidden');
+
+      if (isSignupMode) {
+        tabSignup.className = 'py-2 rounded-md bg-white text-amber-800 shadow-sm transition';
+        tabLogin.className = 'py-2 rounded-md text-gray-500 hover:text-gray-700 transition';
+        authTitle.textContent = '団体スタッフ 新規アカウント登録';
+        authSubtitle.textContent = 'メールアドレスとパスワードを設定して登録します';
+        authSubmitBtn.textContent = '新規登録する';
+      } else {
+        tabLogin.className = 'py-2 rounded-md bg-white text-amber-800 shadow-sm transition';
+        tabSignup.className = 'py-2 rounded-md text-gray-500 hover:text-gray-700 transition';
+        authTitle.textContent = '団体スタッフ ログイン';
+        authSubtitle.textContent = '物資の登録・管理を行うにはログインしてください';
+        authSubmitBtn.textContent = 'ログインする';
+      }
+    }
+
+    tabLogin.addEventListener('click', () => switchAuthMode(false));
+    tabSignup.addEventListener('click', () => switchAuthMode(true));
+
+    // ==========================================
+    // 3. 認証状態の監視（ログイン・ログアウト切り替え）
     // ==========================================
     async function checkAuthState() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       updateUIForUser(session?.user || null);
 
-      // 状態変化をリアルタイム監視
       supabaseClient.auth.onAuthStateChange((_event, session) => {
         updateUIForUser(session?.user || null);
       });
@@ -190,17 +236,14 @@
     function updateUIForUser(user) {
       currentUser = user;
       if (user) {
-        // ログイン中：フォームを表示し、ログイン画面を隠す
         loginSection.classList.add('hidden');
         formSection.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
         userEmailDisplay.textContent = user.email;
         
-        // 猫リストと入力履歴を読み込む
         loadAnimals();
         loadTitleHistory();
       } else {
-        // 未ログイン：ログイン画面を表示し、フォームを隠す
         loginSection.classList.remove('hidden');
         formSection.classList.add('hidden');
         logoutBtn.classList.add('hidden');
@@ -209,26 +252,53 @@
     }
 
     // ==========================================
-    // 3. ログイン・ログアウト処理
+    // 4. ログイン ＆ 新規登録 実行処理
     // ==========================================
-    loginForm.addEventListener('submit', async (e) => {
+    authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      loginError.classList.add('hidden');
-      const email = document.getElementById('loginEmail').value;
-      const password = document.getElementById('loginPassword').value;
-      const btn = document.getElementById('loginSubmitBtn');
+      authError.classList.add('hidden');
+      authSuccess.classList.add('hidden');
 
-      btn.disabled = true;
-      btn.textContent = 'ログイン中...';
+      const email = document.getElementById('authEmail').value.trim();
+      const password = document.getElementById('authPassword').value;
 
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      authSubmitBtn.disabled = true;
+      authSubmitBtn.textContent = isSignupMode ? '登録処理中...' : 'ログイン中...';
 
-      btn.disabled = false;
-      btn.textContent = 'ログインする';
+      try {
+        if (isSignupMode) {
+          // 新規登録（Sign Up）
+          const { data, error } = await supabaseClient.auth.signUp({
+            email,
+            password
+          });
 
-      if (error) {
-        loginError.textContent = 'ログインに失敗しました。メールアドレスまたはパスワードを確認してください。（' + error.message + '）';
-        loginError.classList.remove('hidden');
+          if (error) throw error;
+
+          // Supabaseのメール確認設定がONの場合はsessionがnullで返る
+          if (data.user && !data.session) {
+            authSuccess.textContent = '確認メールを送信しました！メール内のリンクをクリックして登録を完了してください。';
+            authSuccess.classList.remove('hidden');
+          } else {
+            // メール確認がOFFの場合はそのまま自動ログイン状態になる
+            authForm.reset();
+          }
+        } else {
+          // ログイン（Sign In）
+          const { error } = await supabaseClient.auth.signInWithPassword({
+            email,
+            password
+          });
+
+          if (error) throw error;
+          authForm.reset();
+        }
+      } catch (err) {
+        authError.textContent = (isSignupMode ? '新規登録エラー: ' : 'ログインエラー: ') + err.message;
+        authError.classList.remove('hidden');
+      } finally {
+        authSubmitBtn.disabled = false;
+        authSubmitBtn.textContent = isSignupMode ? '新規登録する' : 'ログインする';
       }
     });
 
@@ -237,11 +307,10 @@
     });
 
     // ==========================================
-    // 4. 保護猫リスト取得 ＆ クイック入力補助機能
+    // 5. 保護猫リスト取得 ＆ クイック入力補助機能
     // ==========================================
     async function loadAnimals() {
       const select = document.getElementById('animalId');
-      // 初期化（最初のデフォルト選択肢以外を削除）
       select.innerHTML = '<option value="">🏠 団体全体用（特定の猫を指定しない）</option>';
 
       const { data, error } = await supabaseClient
@@ -259,7 +328,6 @@
       }
     }
 
-    // 定番タグのクリック自動入力
     document.querySelectorAll('.preset-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         document.getElementById('title').value = btn.dataset.title;
@@ -270,7 +338,6 @@
       });
     });
 
-    // ローカルキャッシュ（入力履歴）の読み込みと保存
     function loadTitleHistory() {
       const history = JSON.parse(localStorage.getItem('nekonote_title_history') || '[]');
       const datalist = document.getElementById('titleHistory');
@@ -284,13 +351,13 @@
 
     function saveTitleHistory(newTitle) {
       let history = JSON.parse(localStorage.getItem('nekonote_title_history') || '[]');
-      history = [newTitle, ...history.filter(t => t !== newTitle)].slice(0, 20); // 最新20件保持
+      history = [newTitle, ...history.filter(t => t !== newTitle)].slice(0, 20);
       localStorage.setItem('nekonote_title_history', JSON.stringify(history));
       loadTitleHistory();
     }
 
     // ==========================================
-    // 5. 物資データの登録処理（Supabase INSERT）
+    // 6. 物資データの登録処理（Supabase INSERT）
     // ==========================================
     wishlistForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -324,7 +391,6 @@
 
         if (error) throw error;
 
-        // 履歴に保存
         saveTitleHistory(title);
 
         alert('欲しい物資を登録しました！公開ページ（wishlist.html）に反映されています🐾');
@@ -333,14 +399,13 @@
 
       } catch (err) {
         console.error('登録エラー:', err);
-        alert('登録に失敗しました。\nエラー内容: ' + err.message + '\n（※SupabaseのRLS設定でauthenticatedユーザーのINSERTが許可されているかご確認ください）');
+        alert('登録に失敗しました。\nエラー内容: ' + err.message);
       } finally {
         submitBtn.disabled = false;
         submitBtn.textContent = 'この内容で物資リストに登録する';
       }
     });
 
-    // 起動時に認証チェック
     window.addEventListener('DOMContentLoaded', checkAuthState);
   </script>
 </body>

@@ -3,180 +3,345 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>保護ネコ支援：欲しい物資の登録</title>
-  <!-- Tailwind CSS (スタイリング用) -->
+  <title>Nekonote - 団体スタッフ用・物資登録</title>
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="bg-gray-50 text-gray-800 min-h-screen py-10 px-4">
+<body class="bg-amber-50/40 text-gray-800 min-h-screen flex flex-col">
 
-  <div class="max-w-xl mx-auto bg-white shadow-md rounded-lg p-6 md:p-8">
-    <h1 class="text-2xl font-bold text-indigo-600 mb-2">支援物資の登録</h1>
-    <p class="text-sm text-gray-500 mb-6">保護猫たちのために、今必要な物資（Amazon等のアフィリエイトリンク）を登録します。</p>
+  <!-- ヘッダー -->
+  <header class="bg-white shadow-sm sticky top-0 z-10">
+    <div class="max-w-3xl mx-auto px-4 py-4 flex justify-between items-center">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl">🐾</span>
+        <h1 class="text-lg md:text-xl font-bold text-amber-800">Nekonote スタッフ管理</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="wishlist.html" class="text-xs text-amber-700 hover:underline font-medium">
+          ← 公開ページを見る
+        </a>
+        <!-- ログイン中のみ表示されるログアウトボタン -->
+        <button id="logoutBtn" class="hidden text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full transition">
+          ログアウト
+        </button>
+      </div>
+    </div>
+  </header>
 
-    <!-- 登録フォーム -->
-    <form id="wishlistForm" class="space-y-4">
-      
-      <!-- 物資名 -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">物資名 <span class="text-red-500">*</span></label>
-        <input type="text" id="title" required placeholder="例: 子猫用ウェットフード 24個入り" 
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+  <main class="max-w-3xl mx-auto px-4 py-8 flex-grow w-full">
+
+    <!-- ==========================================
+         1. 未ログイン時に表示される「ログイン画面」
+         ========================================== -->
+    <div id="loginSection" class="max-w-md mx-auto bg-white rounded-xl p-6 md:p-8 shadow-sm border border-amber-100 mt-6">
+      <div class="text-center mb-6">
+        <span class="text-3xl">🔐</span>
+        <h2 class="text-xl font-bold text-gray-800 mt-2">団体スタッフ ログイン</h2>
+        <p class="text-xs text-gray-500 mt-1">物資の登録・管理を行うにはログインしてください</p>
       </div>
 
-      <!-- 必要数 -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">必要数 <span class="text-red-500">*</span></label>
-        <input type="number" id="target_quantity" required min="1" value="1" 
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      <form id="loginForm" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
+          <input type="email" id="loginEmail" required placeholder="staff@example.com"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">パスワード</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••"
+            class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
+        </div>
+
+        <p id="loginError" class="text-xs text-red-600 hidden bg-red-50 p-2.5 rounded-lg border border-red-200"></p>
+
+        <button type="submit" id="loginSubmitBtn"
+          class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-lg transition shadow-sm">
+          ログインする
+        </button>
+      </form>
+    </div>
+
+    <!-- ==========================================
+         2. ログイン成功時に表示される「物資登録フォーム」
+         ========================================== -->
+    <div id="formSection" class="hidden">
+      <!-- ログインユーザー情報バー -->
+      <div class="bg-amber-100/70 text-amber-900 text-xs px-4 py-2.5 rounded-lg mb-6 flex justify-between items-center">
+        <span>✅ ログイン中: <strong id="userEmailDisplay"></strong></span>
+        <span>認証済みスタッフ</span>
       </div>
 
-      <!-- アフィリエイトURL -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">購入URL（アフィリエイトリンク） <span class="text-red-500">*</span></label>
-        <input type="url" id="affiliate_url" required placeholder="https://www.amazon.co.jp/... (短縮URLやアフィリンク)" 
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        <p class="text-xs text-gray-400 mt-1">※Amazonアソシエイト等で発行したリンクを入力してください。</p>
+      <div class="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-gray-200">
+        <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">📦 新しい欲しい物資を登録する</h2>
+
+        <!-- クイック選択タグ（定番物資） -->
+        <div class="mb-6 bg-gray-50 p-3.5 rounded-lg border border-gray-100">
+          <p class="text-xs font-bold text-gray-600 mb-2">⚡ よく使う定番物資（クリックで自動入力）:</p>
+          <div class="flex flex-wrap gap-1.5" id="presetTags">
+            <button type="button" data-title="子猫用ミルク（粉末）" data-desc="離乳前の子猫たちの栄養補給に毎日たくさん使います。" class="preset-btn text-xs bg-white hover:bg-amber-50 text-gray-700 border border-gray-300 rounded-full px-3 py-1 transition">🍼 子猫用ミルク</button>
+            <button type="button" data-title="ペットシーツ（レギュラー・薄型）" data-desc="ケージ内の衛生管理のため、毎日大量に消費します。" class="preset-btn text-xs bg-white hover:bg-amber-50 text-gray-700 border border-gray-300 rounded-full px-3 py-1 transition">🧻 ペットシーツ</button>
+            <button type="button" data-title="システムトイレ用 消臭サンド" data-desc="保護猫たちのトイレ環境を清潔に保つために必要です。" class="preset-btn text-xs bg-white hover:bg-amber-50 text-gray-700 border border-gray-300 rounded-full px-3 py-1 transition">🚽 システムトイレ砂</button>
+            <button type="button" data-title="子猫用ウェットフード（パウチ・缶）" data-desc="食欲が落ちている子や離乳食期の子猫用です。" class="preset-btn text-xs bg-white hover:bg-amber-50 text-gray-700 border border-gray-300 rounded-full px-3 py-1 transition">🥫 子猫用ウェット</button>
+            <button type="button" data-title="成猫用ドライフード（総合栄養食）" data-desc="毎日食べる主食のカリカリです。メーカーは問いません。" class="preset-btn text-xs bg-white hover:bg-amber-50 text-gray-700 border border-gray-300 rounded-full px-3 py-1 transition">🥣 成猫ドライフード</button>
+          </div>
+        </div>
+
+        <form id="wishlistForm" class="space-y-5">
+          <!-- 商品名（過去の入力履歴datalist付き） -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">
+              欲しい物資の商品名 <span class="text-red-500">*</span>
+            </label>
+            <input type="text" id="title" list="titleHistory" required placeholder="例：ロイヤルカナン ベビーキャット 2kg"
+              class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
+            <datalist id="titleHistory"></datalist>
+            <p class="text-[11px] text-gray-500 mt-1">※この商品名をもとに、Amazon・楽天市場の支援検索リンクが自動生成されます。</p>
+          </div>
+
+          <!-- 対象猫の選択（animalsテーブルから自動取得） -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">対象の保護猫（任意）</label>
+            <select id="animalId" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm bg-white">
+              <option value="">🏠 団体全体用（特定の猫を指定しない）</option>
+            </select>
+          </div>
+
+          <!-- 必要数量 ＆ 緊急フラグ -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">
+                必要な数量（個・袋・箱） <span class="text-red-500">*</span>
+              </label>
+              <input type="number" id="targetQuantity" min="1" value="3" required
+                class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
+            </div>
+
+            <div class="flex items-center pt-2 sm:pt-6">
+              <label class="flex items-center gap-2 cursor-pointer bg-red-50 border border-red-200 px-4 py-2.5 rounded-lg w-full">
+                <input type="checkbox" id="isUrgent" class="w-4 h-4 text-red-600 rounded focus:ring-red-500">
+                <span class="text-sm font-bold text-red-700">🚨 緊急SOS（最優先で表示）</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- 詳細・用途メモ -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">理由・用途メッセージ（支援者へのアピール）</label>
+            <textarea id="description" rows="3" placeholder="例：現在保護している子猫5匹が毎日たくさん食べているため、在庫が底をつきそうです！"
+              class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm"></textarea>
+          </div>
+
+          <!-- 特定URL指定（任意） -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">特定の商品URL（任意・空欄でもOK）</label>
+            <input type="url" id="affiliateUrl" placeholder="https://www.amazon.co.jp/..."
+              class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
+            <p class="text-[11px] text-gray-500 mt-1">※特定の型番や商品をピンポイントで指定したい場合のみ貼り付けてください。</p>
+          </div>
+
+          <!-- 送信ボタン -->
+          <div class="pt-2">
+            <button type="submit" id="submitBtn"
+              class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-sm text-base">
+              この内容で物資リストに登録する
+            </button>
+          </div>
+        </form>
       </div>
+    </div>
 
-      <!-- 対象の保護猫（animalsテーブルから動的取得） -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">対象の保護猫（任意）</label>
-        <select id="animal_id" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500">
-          <option value="">特定の猫なし（団体全体宛て）</option>
-        </select>
-      </div>
-
-      <!-- 理由・詳細 -->
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">理由・詳細（任意）</label>
-        <textarea id="description" rows="3" placeholder="例: 離乳期の子猫がたくさん保護されたため、フードが不足しています。" 
-          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
-      </div>
-
-      <!-- 緊急フラグ -->
-      <div class="flex items-center gap-2 pt-2">
-        <input type="checkbox" id="is_urgent" class="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-        <label for="is_urgent" class="text-sm font-medium text-red-600">🚨 緊急で必要（目立つようにSOS表示します）</label>
-      </div>
-
-      <!-- 送信ボタン -->
-      <button type="submit" id="submitBtn" 
-        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-md transition duration-200 mt-4">
-        物資を登録する
-      </button>
-    </form>
-
-    <!-- 登録完了メッセージ -->
-    <div id="messageArea" class="mt-4 hidden p-3 rounded-md text-sm text-center"></div>
-  </div>
+  </main>
 
   <script>
     // ==========================================
-    // 1. Supabaseクライアントの初期化
+    // 1. Supabase 初期設定
     // ==========================================
-    // ※ ご自身のSupabaseプロジェクトのURLとAnon Keyに書き換えてください
-    const SUPABASE_URL = 'https://fknneasutspaonhvmsae.supabase.co';
-    const SUPABASE_ANON_KEY = 'sb_publishable_bXjpXwx8EY2PBn3E6FqT8A_3s18sjFJ';
-    
+    const SUPABASE_URL = 'YOUR_SUPABASE_URL';
+    const SUPABASE_ANON_KEY = 'YOUR_SUPABASE_ANON_KEY';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     // DOM要素
+    const loginSection = document.getElementById('loginSection');
+    const formSection = document.getElementById('formSection');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const userEmailDisplay = document.getElementById('userEmailDisplay');
+    const loginForm = document.getElementById('loginForm');
+    const loginError = document.getElementById('loginError');
     const wishlistForm = document.getElementById('wishlistForm');
-    const animalSelect = document.getElementById('animal_id');
-    const messageArea = document.getElementById('messageArea');
-    const submitBtn = document.getElementById('submitBtn');
+
+    let currentUser = null;
 
     // ==========================================
-    // 2. ページ読み込み時の処理（猫リストの取得 & ログイン確認）
+    // 2. 認証状態の監視（ログイン・ログアウト切り替え）
     // ==========================================
-    window.addEventListener('DOMContentLoaded', async () => {
-      try {
-        // ログインユーザーのセッションチェック
-        const { data: { session } } = await supabaseClient.auth.getSession();
-        if (!session) {
-          console.warn('ログインしていません。テスト時はRLSポリシーやログイン状態にご注意ください。');
-        }
+    async function checkAuthState() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      updateUIForUser(session?.user || null);
 
-        // animalsテーブルから保護猫リストを取得してプルダウンにセット
-        const { data: animals, error } = await supabaseClient
-          .from('animals')
-          .select('id, name')
-          .order('created_at', { ascending: false });
+      // 状態変化をリアルタイム監視
+      supabaseClient.auth.onAuthStateChange((_event, session) => {
+        updateUIForUser(session?.user || null);
+      });
+    }
 
-        if (error) throw error;
+    function updateUIForUser(user) {
+      currentUser = user;
+      if (user) {
+        // ログイン中：フォームを表示し、ログイン画面を隠す
+        loginSection.classList.add('hidden');
+        formSection.classList.remove('hidden');
+        logoutBtn.classList.remove('hidden');
+        userEmailDisplay.textContent = user.email;
+        
+        // 猫リストと入力履歴を読み込む
+        loadAnimals();
+        loadTitleHistory();
+      } else {
+        // 未ログイン：ログイン画面を表示し、フォームを隠す
+        loginSection.classList.remove('hidden');
+        formSection.classList.add('hidden');
+        logoutBtn.classList.add('hidden');
+        userEmailDisplay.textContent = '';
+      }
+    }
 
-        if (animals) {
-          animals.forEach(animal => {
-            const option = document.createElement('option');
-            option.value = animal.id;
-            option.textContent = animal.name;
-            animalSelect.appendChild(option);
-          });
-        }
-      } catch (err) {
-        console.error('初期化エラー:', err.message);
+    // ==========================================
+    // 3. ログイン・ログアウト処理
+    // ==========================================
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginError.classList.add('hidden');
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('loginSubmitBtn');
+
+      btn.disabled = true;
+      btn.textContent = 'ログイン中...';
+
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+
+      btn.disabled = false;
+      btn.textContent = 'ログインする';
+
+      if (error) {
+        loginError.textContent = 'ログインに失敗しました。メールアドレスまたはパスワードを確認してください。（' + error.message + '）';
+        loginError.classList.remove('hidden');
       }
     });
 
+    logoutBtn.addEventListener('click', async () => {
+      await supabaseClient.auth.signOut();
+    });
+
     // ==========================================
-    // 3. フォーム送信処理（DBへインサート）
+    // 4. 保護猫リスト取得 ＆ クイック入力補助機能
+    // ==========================================
+    async function loadAnimals() {
+      const select = document.getElementById('animalId');
+      // 初期化（最初のデフォルト選択肢以外を削除）
+      select.innerHTML = '<option value="">🏠 団体全体用（特定の猫を指定しない）</option>';
+
+      const { data, error } = await supabaseClient
+        .from('animals')
+        .select('id, name')
+        .order('created_at', { ascending: false });
+
+      if (!error && data) {
+        data.forEach(cat => {
+          const opt = document.createElement('option');
+          opt.value = cat.id;
+          opt.textContent = `🐱 ${cat.name} ちゃん用`;
+          select.appendChild(opt);
+        });
+      }
+    }
+
+    // 定番タグのクリック自動入力
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('title').value = btn.dataset.title;
+        const descInput = document.getElementById('description');
+        if (!descInput.value) {
+          descInput.value = btn.dataset.desc;
+        }
+      });
+    });
+
+    // ローカルキャッシュ（入力履歴）の読み込みと保存
+    function loadTitleHistory() {
+      const history = JSON.parse(localStorage.getItem('nekonote_title_history') || '[]');
+      const datalist = document.getElementById('titleHistory');
+      datalist.innerHTML = '';
+      history.forEach(item => {
+        const option = document.createElement('option');
+        option.value = item;
+        datalist.appendChild(option);
+      });
+    }
+
+    function saveTitleHistory(newTitle) {
+      let history = JSON.parse(localStorage.getItem('nekonote_title_history') || '[]');
+      history = [newTitle, ...history.filter(t => t !== newTitle)].slice(0, 20); // 最新20件保持
+      localStorage.setItem('nekonote_title_history', JSON.stringify(history));
+      loadTitleHistory();
+    }
+
+    // ==========================================
+    // 5. 物資データの登録処理（Supabase INSERT）
     // ==========================================
     wishlistForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (!currentUser) return alert('ログインが必要です。');
+
+      const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
       submitBtn.textContent = '登録中...';
-      messageArea.classList.add('hidden');
+
+      const title = document.getElementById('title').value.trim();
+      const animalId = document.getElementById('animalId').value || null;
+      const targetQuantity = parseInt(document.getElementById('targetQuantity').value, 10);
+      const isUrgent = document.getElementById('isUrgent').checked;
+      const description = document.getElementById('description').value.trim();
+      const affiliateUrl = document.getElementById('affiliateUrl').value.trim() || null;
 
       try {
-        // ログイン中のユーザーIDを取得
-        const { data: { user } } = await supabaseClient.auth.getUser();
-        const userId = user ? user.id : null;
-
-        // フォームの値を取得
-        const title = document.getElementById('title').value;
-        const target_quantity = parseInt(document.getElementById('target_quantity').value, 10);
-        const affiliate_url = document.getElementById('affiliate_url').value;
-        const animal_id = document.getElementById('animal_id').value || null;
-        const description = document.getElementById('description').value || null;
-        const is_urgent = document.getElementById('is_urgent').checked;
-
-        // wishlist_items テーブルに挿入
         const { error } = await supabaseClient
           .from('wishlist_items')
           .insert([{
             title,
-            target_quantity,
-            current_quantity: 0, // 初期値は0
-            affiliate_url,
-            animal_id,
+            animal_id: animalId,
+            target_quantity: targetQuantity,
+            current_quantity: 0,
+            is_urgent: isUrgent,
             description,
-            is_urgent,
-            created_by: userId,  // profiles(id) と紐付け
-            status: 'active'
+            affiliate_url: affiliateUrl,
+            status: 'active',
+            created_by: currentUser.id
           }]);
 
         if (error) throw error;
 
-        // 成功メッセージ
-        messageArea.textContent = '✅ 欲しい物資の登録が完了しました！';
-        messageArea.className = 'mt-4 p-3 rounded-md text-sm text-center bg-green-50 text-green-700';
-        messageArea.classList.remove('hidden');
+        // 履歴に保存
+        saveTitleHistory(title);
 
-        // フォームをリセット
+        alert('欲しい物資を登録しました！公開ページ（wishlist.html）に反映されています🐾');
         wishlistForm.reset();
+        document.getElementById('targetQuantity').value = 3;
 
       } catch (err) {
         console.error('登録エラー:', err);
-        messageArea.textContent = `❌ エラーが発生しました: ${err.message}`;
-        messageArea.className = 'mt-4 p-3 rounded-md text-sm text-center bg-red-50 text-red-700';
-        messageArea.classList.remove('hidden');
+        alert('登録に失敗しました。\nエラー内容: ' + err.message + '\n（※SupabaseのRLS設定でauthenticatedユーザーのINSERTが許可されているかご確認ください）');
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = '物資を登録する';
+        submitBtn.textContent = 'この内容で物資リストに登録する';
       }
     });
+
+    // 起動時に認証チェック
+    window.addEventListener('DOMContentLoaded', checkAuthState);
   </script>
 </body>
 </html>

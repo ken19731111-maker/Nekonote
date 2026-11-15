@@ -158,12 +158,12 @@
       wishlistGrid.innerHTML = '';
 
       try {
-        const { data, error } = await supabaseClient
+const { data, error } = await supabaseClient
           .from('wishlist_items')
           .select(`
             *,
             animals ( name ),
-            organizations ( name, delivery_type, postal_code, address, contact_info, amazon_wishlist_url )
+            organizations!fk_wishlist_organization ( name, delivery_type, postal_code, address, contact_info, amazon_wishlist_url )
           `)
           .eq('status', 'active')
           .order('is_urgent', { ascending: false })

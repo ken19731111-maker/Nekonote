@@ -4,9 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nekonote - 団体スタッフ用・物資管理</title>
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Supabase JS Client -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body class="bg-amber-50/40 text-gray-800 min-h-screen flex flex-col">
@@ -22,7 +20,6 @@
         <a href="wishlist.html" class="text-xs text-amber-700 hover:underline font-medium">
           ← 公開ページを見る
         </a>
-        <!-- ログイン中のみ表示されるログアウトボタン -->
         <button id="logoutBtn" class="hidden text-xs bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-full transition">
           ログアウト
         </button>
@@ -33,7 +30,7 @@
   <main class="max-w-3xl mx-auto px-4 py-8 flex-grow w-full">
 
     <!-- ==========================================
-         1. 未ログイン時に表示される「ログイン・新規登録画面」
+         1. 未ログイン時：ログイン・新規登録画面
          ========================================== -->
     <div id="loginSection" class="max-w-md mx-auto bg-white rounded-xl p-6 md:p-8 shadow-sm border border-amber-100 mt-6">
       <div class="text-center mb-5">
@@ -42,7 +39,6 @@
         <p id="authSubtitle" class="text-xs text-gray-500 mt-1">物資の登録・管理を行うにはログインしてください</p>
       </div>
 
-      <!-- ログイン / 新規登録 切り替えタブ -->
       <div class="grid grid-cols-2 bg-gray-100 p-1 rounded-lg mb-6 text-sm font-bold">
         <button type="button" id="tabLogin" class="py-2 rounded-md bg-white text-amber-800 shadow-sm transition">
           ログイン
@@ -55,19 +51,17 @@
       <form id="authForm" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
-          <input type="email" id="authEmail" required placeholder="staff@example.com"
+          <input type="email" id="authEmail" required autocomplete="email" placeholder="staff@example.com"
             class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
         </div>
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">パスワード（6文字以上）</label>
-          <input type="password" id="authPassword" required minlength="6" placeholder="••••••••"
+          <input type="password" id="authPassword" required minlength="6" autocomplete="current-password" placeholder="••••••••"
             class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
         </div>
 
-        <!-- エラーメッセージ -->
         <p id="authError" class="text-xs text-red-600 hidden bg-red-50 p-2.5 rounded-lg border border-red-200"></p>
-        <!-- 完了・案内メッセージ -->
         <p id="authSuccess" class="text-xs text-green-700 hidden bg-green-50 p-2.5 rounded-lg border border-green-200"></p>
 
         <button type="submit" id="authSubmitBtn"
@@ -78,7 +72,7 @@
     </div>
 
     <!-- ==========================================
-         2. ログイン成功時に表示される「管理ダッシュボード」
+         2. ログイン成功時：管理ダッシュボード
          ========================================== -->
     <div id="formSection" class="hidden space-y-8">
       <!-- ログインユーザー情報バー -->
@@ -87,13 +81,103 @@
         <span>認証済みスタッフ</span>
       </div>
 
-      <!-- 新規登録フォームカード -->
+      <!-- ==========================================
+           A. 団体プロフィール設定（初回・変更時のみ）
+           ========================================== -->
+      <div class="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-amber-200">
+        <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
+          <h2 class="text-lg font-bold text-gray-800">🏠 うちの団体プロフィール設定</h2>
+          <span id="orgStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">未設定</span>
+        </div>
+        <p class="text-xs text-gray-600 mb-5">
+          ※ここで登録した団体名や受け取り方法が、すべての欲しい物資カードに自動表示されます（一度保存すれば毎回入力する必要はありません）。
+        </p>
+
+        <form id="orgForm" class="space-y-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">
+                団体名・シェルター名 <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="orgName" required placeholder="例：仙台保護猫ネットワーク"
+                class="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm">
+            </div>
+
+            <div>
+              <label class="block text-sm font-bold text-gray-700 mb-1">
+                連絡先（メール・Instagram・電話など） <span class="text-red-500">*</span>
+              </label>
+              <input type="text" id="orgContact" required placeholder="例：info@example.com / @neko_sendai"
+                class="w-full px-3.5 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm">
+            </div>
+          </div>
+
+          <!-- 受け取り方法の2択ラジオボタン -->
+          <div class="pt-2">
+            <label class="block text-sm font-bold text-gray-700 mb-2">
+              支援物資の受け取り方法 <span class="text-red-500">*</span>
+            </label>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <label class="border rounded-lg p-3.5 cursor-pointer flex items-start gap-2.5 hover:bg-amber-50/50 transition has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+                <input type="radio" name="deliveryType" value="address" checked class="mt-1 text-amber-600 focus:ring-amber-500">
+                <div>
+                  <span class="block text-sm font-bold text-gray-800">① 送り先住所を公開して受け取る</span>
+                  <span class="block text-[11px] text-gray-500 mt-0.5">シェルターや店舗など、住所を公開して直接配送してもらえる団体向け</span>
+                </div>
+              </label>
+
+              <label class="border rounded-lg p-3.5 cursor-pointer flex items-start gap-2.5 hover:bg-amber-50/50 transition has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50">
+                <input type="radio" name="deliveryType" value="wishlist" class="mt-1 text-amber-600 focus:ring-amber-500">
+                <div>
+                  <span class="block text-sm font-bold text-gray-800">② 住所非公開（Amazonほしい物リスト）</span>
+                  <span class="block text-[11px] text-gray-500 mt-0.5">自宅保護などで住所を隠し、Amazonのリスト経由で受け取る団体向け</span>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- ① 住所公開用フィールド -->
+          <div id="addressFields" class="space-y-3 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-bold text-gray-700 mb-1">郵便番号</label>
+                <input type="text" id="orgPostalCode" placeholder="例：980-0000"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block text-xs font-bold text-gray-700 mb-1">公開する送り先住所・宛名</label>
+                <input type="text" id="orgAddress" placeholder="例：宮城県仙台市青葉区〇〇 1-2-3 保護猫ハウス宛"
+                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+              </div>
+            </div>
+          </div>
+
+          <!-- ② Amazonほしい物リスト用フィールド -->
+          <div id="wishlistUrlField" class="hidden space-y-2 bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <label class="block text-xs font-bold text-gray-700">団体のAmazonほしい物リスト共有URL</label>
+            <input type="url" id="orgAmazonWishlist" placeholder="https://www.amazon.co.jp/hz/wishlist/ls/..."
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
+            <p class="text-[11px] text-gray-500">※Amazon側で「お届け先住所の非公開設定」がONになっているかご確認ください。</p>
+          </div>
+
+          <div class="pt-1">
+            <button type="submit" id="saveOrgBtn"
+              class="bg-gray-800 hover:bg-gray-900 text-white font-bold text-sm py-2.5 px-5 rounded-lg transition shadow-sm">
+              団体プロフィールを保存する
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ==========================================
+           B. 新しい欲しい物資を登録するフォーム
+           ========================================== -->
       <div class="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-gray-200">
         <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">📦 新しい欲しい物資を登録する</h2>
 
         <!-- クイック選択タグ（定番物資） -->
         <div class="mb-6 bg-gray-50 p-3.5 rounded-lg border border-gray-100">
-          <p class="text-xs font-bold text-gray-600 mb-2">⚡ よく使う定番物資（クリックで自動入力）:</p>
+          <p class="text-xs font-bold text-gray-600 mb-2">⚡ よく使う定番物資（クリックで自動入力＆アイコン自動設定）:</p>
           <div class="flex flex-wrap gap-1.5" id="presetTags">
             <button type="button" data-title="子猫用ミルク（粉末）" data-desc="離乳前の子猫たちの栄養補給に毎日たくさん使います。" class="preset-btn text-xs bg-white hover:bg-amber-50 text-gray-700 border border-gray-300 rounded-full px-3 py-1 transition">🍼 子猫用ミルク</button>
             <button type="button" data-title="ペットシーツ（レギュラー・薄型）" data-desc="ケージ内の衛生管理のため、毎日大量に消費します。" class="preset-btn text-xs bg-white hover:bg-amber-50 text-gray-700 border border-gray-300 rounded-full px-3 py-1 transition">🧻 ペットシーツ</button>
@@ -104,33 +188,30 @@
         </div>
 
         <form id="wishlistForm" class="space-y-5">
-          <!-- 商品名（過去の入力履歴datalist付き） -->
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-1">
               欲しい物資の商品名 <span class="text-red-500">*</span>
             </label>
             <input type="text" id="title" list="titleHistory" required placeholder="例：ロイヤルカナン ベビーキャット 2kg"
-              class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
+              class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm">
             <datalist id="titleHistory"></datalist>
-            <p class="text-[11px] text-gray-500 mt-1">※この商品名をもとに、Amazon・楽天市場の支援検索リンクが自動生成されます。</p>
+            <p class="text-[11px] text-gray-500 mt-1">※「ミルク」「シーツ」「砂」「フード」などの言葉を入れると、公開ページでかわいいイラストアイコンが自動表示されます。</p>
           </div>
 
-          <!-- 対象猫の選択（animalsテーブルから自動取得） -->
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-1">対象の保護猫（任意）</label>
-            <select id="animalId" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm bg-white">
+            <select id="animalId" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm bg-white">
               <option value="">🏠 団体全体用（特定の猫を指定しない）</option>
             </select>
           </div>
 
-          <!-- 必要数量 ＆ 緊急フラグ -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label class="block text-sm font-bold text-gray-700 mb-1">
                 必要な数量（個・袋・箱） <span class="text-red-500">*</span>
               </label>
               <input type="number" id="targetQuantity" min="1" value="3" required
-                class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
+                class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm">
             </div>
 
             <div class="flex items-center pt-2 sm:pt-6">
@@ -141,22 +222,19 @@
             </div>
           </div>
 
-          <!-- 詳細・用途メモ -->
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-1">理由・用途メッセージ（支援者へのアピール）</label>
             <textarea id="description" rows="3" placeholder="例：現在保護している子猫5匹が毎日たくさん食べているため、在庫が底をつきそうです！"
-              class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm"></textarea>
+              class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm"></textarea>
           </div>
 
-          <!-- 特定URL指定（任意） -->
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-1">特定の商品URL（任意・空欄でもOK）</label>
             <input type="url" id="affiliateUrl" placeholder="https://www.amazon.co.jp/..."
-              class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none text-sm">
+              class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm">
             <p class="text-[11px] text-gray-500 mt-1">※特定の型番や商品をピンポイントで指定したい場合のみ貼り付けてください。</p>
           </div>
 
-          <!-- 送信ボタン -->
           <div class="pt-2">
             <button type="submit" id="submitBtn"
               class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 px-4 rounded-lg transition shadow-sm text-base">
@@ -167,7 +245,7 @@
       </div>
 
       <!-- ==========================================
-           3. 登録済みの物資一覧（管理・募集終了・削除）
+           C. 登録済みの物資一覧（管理・募集終了・削除）
            ========================================== -->
       <div class="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-gray-200">
         <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
@@ -180,23 +258,14 @@
           </button>
         </div>
 
-        <p class="text-xs text-gray-500 mb-4">
-          ※「募集終了にする」を押すと一般公開ページから非表示になります（後から再募集も可能です）。
-        </p>
-
-        <!-- ローディング表示 -->
         <div id="managedLoading" class="text-center py-8 text-sm text-gray-500 hidden">
           登録データを読み込み中...
         </div>
 
-        <!-- 登録済みリストコンテナ -->
-        <div id="managedItemsList" class="space-y-3">
-          <!-- JavaScriptでここに管理用カードが挿入されます -->
-        </div>
+        <div id="managedItemsList" class="space-y-3"></div>
       </div>
 
     </div>
-
   </main>
 
   <script>
@@ -221,18 +290,35 @@
     const authForm = document.getElementById('authForm');
     const authError = document.getElementById('authError');
     const authSuccess = document.getElementById('authSuccess');
-    const wishlistForm = document.getElementById('wishlistForm');
 
+    const orgForm = document.getElementById('orgForm');
+    const orgStatusBadge = document.getElementById('orgStatusBadge');
+    const addressFields = document.getElementById('addressFields');
+    const wishlistUrlField = document.getElementById('wishlistUrlField');
+
+    const wishlistForm = document.getElementById('wishlistForm');
     const managedItemsList = document.getElementById('managedItemsList');
     const managedLoading = document.getElementById('managedLoading');
     const managedCount = document.getElementById('managedCount');
 
     let currentUser = null;
     let isSignupMode = false;
+    let hasOrgProfile = false;
 
-    // ==========================================
-    // 2. ログイン / 新規登録 タブ切り替え
-    // ==========================================
+    // 受け取り方法ラジオボタン切り替え
+    document.querySelectorAll('input[name="deliveryType"]').forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        if (e.target.value === 'address') {
+          addressFields.classList.remove('hidden');
+          wishlistUrlField.classList.add('hidden');
+        } else {
+          addressFields.classList.add('hidden');
+          wishlistUrlField.classList.remove('hidden');
+        }
+      });
+    });
+
+    // ログイン / 新規登録 タブ切り替え
     function switchAuthMode(signup) {
       isSignupMode = signup;
       authError.classList.add('hidden');
@@ -256,9 +342,7 @@
     tabLogin.addEventListener('click', () => switchAuthMode(false));
     tabSignup.addEventListener('click', () => switchAuthMode(true));
 
-    // ==========================================
-    // 3. 認証状態の監視（ログイン・ログアウト切り替え）
-    // ==========================================
+    // 認証状態監視
     async function checkAuthState() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       updateUIForUser(session?.user || null);
@@ -276,9 +360,10 @@
         logoutBtn.classList.remove('hidden');
         userEmailDisplay.textContent = user.email;
         
+        loadOrganizationProfile();
         loadAnimals();
         loadTitleHistory();
-        loadManagedItems(); // 登録済み物資一覧を読み込む
+        loadManagedItems();
       } else {
         loginSection.classList.remove('hidden');
         formSection.classList.add('hidden');
@@ -287,9 +372,7 @@
       }
     }
 
-    // ==========================================
-    // 4. ログイン ＆ 新規登録 実行処理
-    // ==========================================
+    // ログイン・新規登録処理
     authForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       authError.classList.add('hidden');
@@ -303,25 +386,16 @@
 
       try {
         if (isSignupMode) {
-          const { data, error } = await supabaseClient.auth.signUp({
-            email,
-            password
-          });
-
+          const { data, error } = await supabaseClient.auth.signUp({ email, password });
           if (error) throw error;
-
           if (data.user && !data.session) {
-            authSuccess.textContent = '確認メールを送信しました！メール内のリンクをクリックして登録を完了してください。';
+            authSuccess.textContent = '確認メールを送信しました！メール内のリンクをクリックしてください。';
             authSuccess.classList.remove('hidden');
           } else {
             authForm.reset();
           }
         } else {
-          const { error } = await supabaseClient.auth.signInWithPassword({
-            email,
-            password
-          });
-
+          const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
           if (error) throw error;
           authForm.reset();
         }
@@ -339,7 +413,99 @@
     });
 
     // ==========================================
-    // 5. 保護猫リスト取得 ＆ クイック入力補助機能
+    // 団体プロフィールの読み込み ＆ 保存
+    // ==========================================
+    async function loadOrganizationProfile() {
+      if (!currentUser) return;
+
+      const { data, error } = await supabaseClient
+        .from('organizations')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .maybeSingle();
+
+      if (!error && data) {
+        hasOrgProfile = true;
+        orgStatusBadge.textContent = '設定済み';
+        orgStatusBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold';
+
+        document.getElementById('orgName').value = data.name || '';
+        document.getElementById('orgContact').value = data.contact_info || '';
+        document.getElementById('orgPostalCode').value = data.postal_code || '';
+        document.getElementById('orgAddress').value = data.address || '';
+        document.getElementById('orgAmazonWishlist').value = data.amazon_wishlist_url || '';
+
+        const radio = document.querySelector(`input[name="deliveryType"][value="${data.delivery_type || 'address'}"]`);
+        if (radio) {
+          radio.checked = true;
+          radio.dispatchEvent(new Event('change'));
+        }
+      } else {
+        hasOrgProfile = false;
+        orgStatusBadge.textContent = '未設定（先に保存してください）';
+        orgStatusBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold';
+      }
+    }
+
+    orgForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!currentUser) return;
+
+      const saveBtn = document.getElementById('saveOrgBtn');
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中...';
+
+      const name = document.getElementById('orgName').value.trim();
+      const contactInfo = document.getElementById('orgContact').value.trim();
+      const deliveryType = document.querySelector('input[name="deliveryType"]:checked').value;
+      const postalCode = document.getElementById('orgPostalCode').value.trim();
+      const address = document.getElementById('orgAddress').value.trim();
+      const amazonWishlistUrl = document.getElementById('orgAmazonWishlist').value.trim();
+
+      if (deliveryType === 'address' && !address) {
+        alert('「送り先住所を公開」を選んだ場合は、住所を入力してください。');
+        saveBtn.disabled = false;
+        saveBtn.textContent = '団体プロフィールを保存する';
+        return;
+      }
+
+      if (deliveryType === 'wishlist' && !amazonWishlistUrl) {
+        alert('「Amazonほしい物リスト」を選んだ場合は、リストの共有URLを入力してください。');
+        saveBtn.disabled = false;
+        saveBtn.textContent = '団体プロフィールを保存する';
+        return;
+      }
+
+      try {
+        const { error } = await supabaseClient
+          .from('organizations')
+          .upsert({
+            user_id: currentUser.id,
+            name,
+            contact_info: contactInfo,
+            delivery_type: deliveryType,
+            postal_code: postalCode,
+            address,
+            amazon_wishlist_url: amazonWishlistUrl,
+            updated_at: new Date().toISOString()
+          });
+
+        if (error) throw error;
+
+        hasOrgProfile = true;
+        orgStatusBadge.textContent = '設定済み';
+        orgStatusBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold';
+        alert('団体プロフィールを保存しました！');
+      } catch (err) {
+        alert('保存エラー: ' + err.message);
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '団体プロフィールを保存する';
+      }
+    });
+
+    // ==========================================
+    // 保護猫リスト ＆ 定番タグ補助
     // ==========================================
     async function loadAnimals() {
       const select = document.getElementById('animalId');
@@ -389,11 +555,17 @@
     }
 
     // ==========================================
-    // 6. 物資データの登録処理（Supabase INSERT）
+    // 物資データの登録処理
     // ==========================================
     wishlistForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       if (!currentUser) return alert('ログインが必要です。');
+
+      if (!hasOrgProfile) {
+        alert('先に上の「🏠 うちの団体プロフィール設定」を入力して保存してください！\n（公開ページに団体名と送り先を表示するために必要です）');
+        document.getElementById('orgName').focus();
+        return;
+      }
 
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
@@ -424,12 +596,9 @@
         if (error) throw error;
 
         saveTitleHistory(title);
-
         alert('欲しい物資を登録しました！公開ページ（wishlist.html）に反映されています🐾');
         wishlistForm.reset();
         document.getElementById('targetQuantity').value = 3;
-        
-        // 下部の登録済み一覧を再読み込み
         loadManagedItems();
 
       } catch (err) {
@@ -442,7 +611,7 @@
     });
 
     // ==========================================
-    // 7. 登録済み物資一覧の取得・募集終了・削除処理
+    // 登録済み物資一覧の取得・募集終了・削除
     // ==========================================
     async function loadManagedItems() {
       if (!currentUser) return;
@@ -451,13 +620,9 @@
       managedItemsList.innerHTML = '';
 
       try {
-        // 自分が登録した物資をすべて取得（募集中・募集終了どちらも表示）
         const { data, error } = await supabaseClient
           .from('wishlist_items')
-          .select(`
-            *,
-            animals ( name )
-          `)
+          .select(`*, animals ( name )`)
           .eq('created_by', currentUser.id)
           .order('created_at', { ascending: false });
 
@@ -485,9 +650,7 @@
             ? `<span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">🚨 緊急</span>`
             : '';
 
-          const catInfo = item.animals
-            ? `🐱 ${escapeHtml(item.animals.name)} ちゃん用`
-            : `🏠 団体全体用`;
+          const catInfo = item.animals ? `🐱 ${escapeHtml(item.animals.name)} ちゃん用` : `🏠 団体全体用`;
 
           const row = document.createElement('div');
           row.className = `p-4 rounded-lg border ${isActive ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200 opacity-75'} flex flex-col sm:flex-row sm:items-center justify-between gap-4`;
@@ -523,19 +686,15 @@
               </button>
             </div>
           `;
-
           managedItemsList.appendChild(row);
         });
-
       } catch (err) {
-        console.error('管理リスト取得エラー:', err);
         managedItemsList.innerHTML = `<p class="text-xs text-red-500 py-4 text-center">一覧の取得に失敗しました: ${err.message}</p>`;
       } finally {
         managedLoading.classList.add('hidden');
       }
     }
 
-    // 募集終了 / 再募集の切り替え
     async function toggleItemStatus(itemId, newStatus) {
       const actionText = newStatus === 'completed' ? '募集終了' : '再募集';
       if (!confirm(`この物資を「${actionText}」に変更しますか？`)) return;
@@ -553,7 +712,6 @@
       }
     }
 
-    // 物資の完全削除
     async function deleteItem(itemId, title) {
       if (!confirm(`「${title}」を完全に削除しますか？\n（※この操作は元に戻せません）`)) return;
 
@@ -570,7 +728,6 @@
       }
     }
 
-    // XSS対策用エスケープ関数
     function escapeHtml(str) {
       if (!str) return '';
       return str.replace(/[&<>"']/g, function(m) {

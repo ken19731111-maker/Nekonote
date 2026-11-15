@@ -31,7 +31,7 @@
       <h2 class="text-xl md:text-2xl font-bold">あなたの「1個」が、保護猫たちの命をつなぎます</h2>
       <p class="text-xs md:text-sm text-amber-100 max-w-2xl mx-auto">
         全国の保護猫ボランティア団体が今まさに必要としているフードや消耗品のリストです。<br class="hidden sm:inline">
-        Amazonや楽天市場から直接お届けいただけます。送ったあとは「支援したよ！」ボタンで教えてください。
+        Amazonや楽天市場から直接お届けいただけます。
       </p>
     </div>
   </section>
@@ -68,16 +68,12 @@
   </footer>
 
   <script>
-    // ==========================================
-    // 1. Supabase ＆ アフィリエイト初期設定
-    // ==========================================
     const SUPABASE_URL = 'https://fknneasutspaonhvmsae.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_bXjpXwx8EY2PBn3E6FqT8A_3s18sjFJ';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // ★ご自身のアフィリエイトIDがある場合はここに入力（空欄でも正常に検索リンクが動きます）
-    const AMAZON_ASSOCIATE_TAG = ''; // 例: 'nekonote-22'
-    const RAKUTEN_AFFILIATE_ID = ''; // 例: '12345678.abcdefg.12345678.abcdefg'
+    const AMAZON_ASSOCIATE_TAG = ''; 
+    const RAKUTEN_AFFILIATE_ID = ''; 
 
     const wishlistGrid = document.getElementById('wishlistGrid');
     const loadingState = document.getElementById('loadingState');
@@ -88,7 +84,6 @@
     let allItems = [];
     let showUrgentOnly = false;
 
-    // フィルター切り替え
     filterAllBtn.addEventListener('click', () => {
       showUrgentOnly = false;
       filterAllBtn.className = 'px-4 py-1.5 rounded-full text-xs font-bold bg-amber-600 text-white shadow-sm transition';
@@ -103,38 +98,18 @@
       renderItems();
     });
 
-    // ==========================================
-    // 2. 商品名からイラストアイコンを自動判定する関数
-    // ==========================================
     function getItemVisual(title) {
       const t = title.toLowerCase();
-      if (t.includes('ミルク') || t.includes('哺乳')) {
-        return { icon: '🍼', label: '子猫用ミルク', bg: 'bg-blue-50 text-blue-600 border-blue-100' };
-      }
-      if (t.includes('シーツ') || t.includes('シート') || t.includes('ペットシート')) {
-        return { icon: '🧻', label: '衛生・シーツ', bg: 'bg-teal-50 text-teal-600 border-teal-100' };
-      }
-      if (t.includes('砂') || t.includes('トイレ') || t.includes('サンド')) {
-        return { icon: '🚽', label: '猫砂・トイレ', bg: 'bg-indigo-50 text-indigo-600 border-indigo-100' };
-      }
-      if (t.includes('ウェット') || t.includes('パウチ') || t.includes('缶') || t.includes('ちゅーる') || t.includes('おやつ')) {
-        return { icon: '🥫', label: 'ウェット・おやつ', bg: 'bg-orange-50 text-orange-600 border-orange-100' };
-      }
-      if (t.includes('フード') || t.includes('カリカリ') || t.includes('ドライ') || t.includes('ロイヤルカナン')) {
-        return { icon: '🥣', label: 'ドライフード', bg: 'bg-amber-50 text-amber-700 border-amber-100' };
-      }
-      if (t.includes('薬') || t.includes('ケア') || t.includes('消毒') || t.includes('除菌')) {
-        return { icon: '🩺', label: 'ケア・衛生用品', bg: 'bg-rose-50 text-rose-600 border-rose-100' };
-      }
-      if (t.includes('おもちゃ') || t.includes('爪とぎ') || t.includes('ベッド') || t.includes('ケージ')) {
-        return { icon: '🧶', label: '生活・おもちゃ', bg: 'bg-purple-50 text-purple-600 border-purple-100' };
-      }
+      if (t.includes('ミルク') || t.includes('哺乳')) return { icon: '🍼', label: '子猫用ミルク', bg: 'bg-blue-50 text-blue-600 border-blue-100' };
+      if (t.includes('シーツ') || t.includes('シート') || t.includes('ペットシート')) return { icon: '🧻', label: '衛生・シーツ', bg: 'bg-teal-50 text-teal-600 border-teal-100' };
+      if (t.includes('砂') || t.includes('トイレ') || t.includes('サンド')) return { icon: '🚽', label: '猫砂・トイレ', bg: 'bg-indigo-50 text-indigo-600 border-indigo-100' };
+      if (t.includes('ウェット') || t.includes('パウチ') || t.includes('缶') || t.includes('ちゅーる') || t.includes('おやつ')) return { icon: '🥫', label: 'ウェット・おやつ', bg: 'bg-orange-50 text-orange-600 border-orange-100' };
+      if (t.includes('フード') || t.includes('カリカリ') || t.includes('ドライ') || t.includes('ロイヤルカナン')) return { icon: '🥣', label: 'ドライフード', bg: 'bg-amber-50 text-amber-700 border-amber-100' };
+      if (t.includes('薬') || t.includes('ケア') || t.includes('消毒') || t.includes('除菌')) return { icon: '🩺', label: 'ケア・衛生用品', bg: 'bg-rose-50 text-rose-600 border-rose-100' };
+      if (t.includes('おもちゃ') || t.includes('爪とぎ') || t.includes('ベッド') || t.includes('ケージ')) return { icon: '🧶', label: '生活・おもちゃ', bg: 'bg-purple-50 text-purple-600 border-purple-100' };
       return { icon: '📦', label: '支援物資', bg: 'bg-amber-50 text-amber-700 border-amber-100' };
     }
 
-    // ==========================================
-    // 3. 検索URL（アフィリエイトID対応）の生成
-    // ==========================================
     function buildAmazonSearchUrl(keyword) {
       const encoded = encodeURIComponent(keyword);
       const tagParam = AMAZON_ASSOCIATE_TAG ? `&tag=${encodeURIComponent(AMAZON_ASSOCIATE_TAG)}` : '';
@@ -150,15 +125,12 @@
       return baseSearch;
     }
 
-    // ==========================================
-    // 4. データ取得 ＆ 描画
-    // ==========================================
     async function loadWishlist() {
       loadingState.classList.remove('hidden');
       wishlistGrid.innerHTML = '';
 
       try {
-const { data, error } = await supabaseClient
+        const { data, error } = await supabaseClient
           .from('wishlist_items')
           .select(`
             *,
@@ -207,18 +179,18 @@ const { data, error } = await supabaseClient
 
         const amazonSearchUrl = buildAmazonSearchUrl(item.title);
         const rakutenSearchUrl = buildRakutenSearchUrl(item.title);
-        // ★【正しい位置】ここで各itemのデータを元にシェア用URLを作成する
+
+        // シェア用URL
         const shareText = encodeURIComponent(
           `【${item.is_urgent ? '🚨【緊急SOS】' : '🐾物資支援のお願い'}】\n` +
           `${orgName}さんより「${item.title}」の支援を募集しています！（残り ${remaining} 個）\n` +
           `温かいご支援をよろしくお願いいたします！\n`
         );
         const currentUrl = encodeURIComponent(window.location.href);
-
         const xShareUrl = `https://twitter.com/intent/tweet?text=${shareText}&url=${currentUrl}`;
         const lineShareUrl = `https://social-plugins.line.me/lineit/share?url=${currentUrl}&text=${shareText}`;
 
-        // 受け取り先ブロックのHTML生成（住所公開 vs ほしい物リスト非公開）
+        // 住所ブロック
         let deliveryHtml = '';
         if (isWishlistMode) {
           deliveryHtml = `
@@ -248,7 +220,7 @@ const { data, error } = await supabaseClient
           `;
         }
 
-        // 購入・支援リンクボタンのHTML生成
+        // 購入・支援ボタン
         let actionButtonsHtml = '';
         if (isWishlistMode && org.amazon_wishlist_url) {
           actionButtonsHtml = `
@@ -288,12 +260,24 @@ const { data, error } = await supabaseClient
           `;
         }
 
+        // 完了報告（お礼メッセージ）がある場合の表示ブロック
+        let thankYouHtml = '';
+        if (item.thank_you_note) {
+          thankYouHtml = `
+            <div class="bg-emerald-50 border border-emerald-200 rounded-lg p-3 text-xs space-y-1 mt-3">
+              <div class="flex items-center gap-1 font-bold text-emerald-800">
+                <span>💌</span> <span>団体からのありがとう・近況報告</span>
+              </div>
+              <p class="text-gray-700 leading-relaxed whitespace-pre-wrap">${escapeHtml(item.thank_you_note)}</p>
+            </div>
+          `;
+        }
+
         const card = document.createElement('article');
         card.className = `bg-white rounded-xl p-5 shadow-sm border ${item.is_urgent ? 'border-red-300 ring-1 ring-red-100' : 'border-gray-200'} flex flex-col justify-between gap-4`;
 
         card.innerHTML = `
           <div class="space-y-3">
-            <!-- 上部バッジ ＆ イラストアイコン -->
             <div class="flex items-start gap-3.5">
               <div class="w-14 h-14 rounded-xl border ${visual.bg} flex flex-col items-center justify-center shrink-0">
                 <span class="text-2xl leading-none">${visual.icon}</span>
@@ -311,7 +295,6 @@ const { data, error } = await supabaseClient
               </div>
             </div>
 
-            <!-- 説明文 -->
             ${item.description ? `<p class="text-xs text-gray-600 leading-relaxed bg-gray-50 p-2.5 rounded-lg">${escapeHtml(item.description)}</p>` : ''}
 
             <!-- 進捗バー -->
@@ -327,14 +310,13 @@ const { data, error } = await supabaseClient
               </div>
             </div>
 
-            <!-- 団体情報 ＆ 送り先表示 -->
             ${deliveryHtml}
+            ${thankYouHtml}
           </div>
 
           <!-- アクションボタンエリア -->
           <div class="pt-2 border-t border-gray-100 space-y-2">
             ${actionButtonsHtml}
-<!-- SNSシェアボタンエリア -->
             <div class="grid grid-cols-2 gap-2 pt-1">
               <a href="${xShareUrl}" target="_blank" rel="noopener noreferrer"
                 class="text-center bg-black hover:bg-gray-800 text-white font-bold text-[11px] py-2 px-2 rounded-lg transition flex items-center justify-center gap-1 shadow-sm">
@@ -345,11 +327,6 @@ const { data, error } = await supabaseClient
                 <span>💬</span> <span>LINEで送る</span>
               </a>
             </div>
-            <button type="button" onclick="incrementSupport('${item.id}', ${item.current_quantity})"
-              class="w-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs py-2.5 px-3 rounded-lg transition flex items-center justify-center gap-1.5">
-              <span>🐾</span>
-              <span>この物資を支援したよ！（+1カウント）</span>
-            </button>
           </div>
         `;
 
@@ -357,29 +334,10 @@ const { data, error } = await supabaseClient
       });
     }
 
-    // 住所ワンクリックコピー
     function copyAddress(text) {
       navigator.clipboard.writeText(text).then(() => {
         alert('送り先住所をコピーしました！\nAmazonや楽天の配送先欄に貼り付けてご利用ください。\n\n' + text);
       });
-    }
-
-    // 「支援したよ！」カウントアップ処理
-    async function incrementSupport(itemId, currentQty) {
-      if (!confirm('この物資を購入・手配しましたか？\n「OK」を押すと支援カウントが +1 増えます🐾')) return;
-
-      try {
-        const { error } = await supabaseClient
-          .from('wishlist_items')
-          .update({ current_quantity: currentQty + 1 })
-          .eq('id', itemId);
-
-        if (error) throw error;
-        alert('温かいご支援ありがとうございます！カウントを更新しました🐾');
-        loadWishlist();
-      } catch (err) {
-        alert('カウントの更新に失敗しました: ' + err.message);
-      }
     }
 
     function escapeHtml(str) {

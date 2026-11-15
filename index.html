@@ -421,7 +421,7 @@
       const { data, error } = await supabaseClient
         .from('organizations')
         .select('*')
-        .eq('user_id', currentUser.id)
+        .eq('id', currentUser.id)
         .maybeSingle();
 
       if (!error && data) {
@@ -480,7 +480,7 @@
         const { error } = await supabaseClient
           .from('organizations')
           .upsert({
-            user_id: currentUser.id,
+            id: currentUser.id,
             name,
             contact_info: contactInfo,
             delivery_type: deliveryType,

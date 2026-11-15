@@ -102,7 +102,16 @@
       filterAllBtn.className = 'px-4 py-1.5 rounded-full text-xs font-bold bg-white text-gray-700 border border-gray-300 hover:bg-amber-50 transition';
       renderItems();
     });
+// シェア用テキストの作成
+        const shareText = encodeURIComponent(
+          `【${item.is_urgent ? '🚨【緊急SOS】' : '🐾物資支援のお願い'}】\n` +
+          `${orgName}さんより「${item.title}」の支援を募集しています！（残り ${remaining} 個）\n` +
+          `温かいご支援をよろしくお願いいたします！\n`
+        );
+        const currentUrl = encodeURIComponent(window.location.href);
 
+        const xShareUrl = `https://twitter.com/intent/tweet?text=${shareText}&url=${currentUrl}`;
+        const lineShareUrl = `https://social-plugins.line.me/lineit/share?url=${currentUrl}&text=${shareText}`;
     // ==========================================
     // 2. 商品名からイラストアイコンを自動判定する関数
     // ==========================================
@@ -324,7 +333,17 @@ const { data, error } = await supabaseClient
           <!-- アクションボタンエリア -->
           <div class="pt-2 border-t border-gray-100 space-y-2">
             ${actionButtonsHtml}
-
+<!-- SNSシェアボタンエリア -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <a href="${xShareUrl}" target="_blank" rel="noopener noreferrer"
+                class="text-center bg-black hover:bg-gray-800 text-white font-bold text-[11px] py-2 px-2 rounded-lg transition flex items-center justify-center gap-1 shadow-sm">
+                <span>🏱</span> <span>Xでシェア</span>
+              </a>
+              <a href="${lineShareUrl}" target="_blank" rel="noopener noreferrer"
+                class="text-center bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-[11px] py-2 px-2 rounded-lg transition flex items-center justify-center gap-1 shadow-sm">
+                <span>💬</span> <span>LINEで送る</span>
+              </a>
+            </div>
             <button type="button" onclick="incrementSupport('${item.id}', ${item.current_quantity})"
               class="w-full bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs py-2.5 px-3 rounded-lg transition flex items-center justify-center gap-1.5">
               <span>🐾</span>

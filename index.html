@@ -450,7 +450,7 @@
       const { data, error } = await supabaseClient
         .from('organizations')
         .select('*')
-        .eq('user_id', currentUser.id)
+       .eq('owner_user_id', currentUser.id)
         .maybeSingle();
 
       if (!error && data) {

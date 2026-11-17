@@ -697,9 +697,11 @@ name,
             is_urgent: isUrgent,
             description,
             affiliate_url: affiliateUrl,
-            status: 'active',
-            created_by: currentUser.id
+                        status: 'active',
+            created_by: currentUser.id,
+            organization_id: currentOrgId
           }]);
+          
 
         if (error) throw error;
 

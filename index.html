@@ -198,28 +198,39 @@
             <p class="text-[11px] text-gray-500 mt-1">※「ミルク」「シーツ」「砂」「フード」などの言葉を入れると、公開ページでかわいいイラストアイコンが自動表示されます。</p>
           </div>
 
+          <!-- 🐱 対象の保護猫選択 -->
           <div>
             <label class="block text-sm font-bold text-gray-700 mb-1">対象の保護猫（任意）</label>
-            <!-- 🐱 対象の保護猫選択（任意） -->
-<div class="space-y-1">
-  <label class="block text-xs font-bold text-gray-700">対象の保護猫（任意）</label>
-  <select id="itemAnimalSelect" class="w-full text-xs border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-amber-500 outline-none">
-    <option value="">🏠 団体全体用（特定の猫なし）</option>
-    <!-- ※JavaScriptで動的に猫のリストを読み込んでここに <option> を追加します -->
-  </select>
-  <p class="text-[10px] text-gray-500">※選択すると、その猫ちゃんのプロフィール画像が優先的に表示されます。</p>
-</div>
-
-<!-- 📦 特定の商品画像URL入力（優先度2） -->
-<div class="space-y-1">
-  <label class="block text-xs font-bold text-gray-700">商品画像URL（任意）</label>
-  <input type="url" id="itemImageUrlInput" placeholder="https://example.com/item_image.jpg"
-    class="w-full text-xs border border-gray-300 rounded-lg p-2.5 bg-white focus:ring-2 focus:ring-amber-500 outline-none">
-  <p class="text-[10px] text-gray-500">※Amazonや楽天などの特定商品画像URLを入力すると、イラストの代わりに表示されます。</p>
-</div>
             <select id="animalId" class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm bg-white">
               <option value="">🏠 団体全体用（特定の猫を指定しない）</option>
             </select>
+          </div>
+
+          <!-- 📸 猫ちゃんの写真をその場で挿入（自動圧縮付き・第1優先） -->
+          <div class="bg-amber-50/70 border border-amber-200 rounded-xl p-4 space-y-3">
+            <label class="block text-xs font-bold text-amber-900">
+              📸 猫ちゃんの写真を追加（任意・自動圧縮されます）
+            </label>
+            <input type="file" id="catImageFileInput" accept="image/*" onchange="previewAndCompressCatImage(event)"
+              class="block w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-600 file:text-white hover:file:bg-amber-700 cursor-pointer">
+            
+            <div id="catImagePreviewBox" class="hidden mt-2 flex items-center gap-3 bg-white p-2.5 rounded-lg border border-amber-200">
+              <img id="catImagePreview" src="" alt="プレビュー" class="w-14 h-14 object-cover rounded-lg shadow-sm">
+              <div class="text-[11px] text-gray-600 space-y-0.5">
+                <p class="font-bold text-emerald-700">✅ 圧縮完了・挿入OK</p>
+                <p id="compressedSizeInfo">自動で軽量化されています</p>
+                <button type="button" onclick="clearCatImage()" class="text-rose-600 underline font-medium">写真をクリア</button>
+              </div>
+            </div>
+            <p class="text-[10px] text-amber-800">※写真を挿入すると、猫ちゃん写真が最優先で表示されます。</p>
+          </div>
+
+          <!-- 📦 商品画像URL入力（第2優先） -->
+          <div>
+            <label class="block text-sm font-bold text-gray-700 mb-1">商品画像URL（任意・猫写真がない場合に表示）</label>
+            <input type="url" id="itemImageUrlInput" placeholder="https://example.com/item_image.jpg"
+              class="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm bg-white">
+            <p class="text-[11px] text-gray-500 mt-1">※Amazonや楽天などの特定商品画像URLを入力すると、イラストの代わりに表示されます。</p>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -321,6 +332,7 @@
     let currentUser = null;
     let isSignupMode = false;
     let hasOrgProfile = false;
+    let compressedCatFile = null; // 圧縮後の猫写真ファイルデータ
 
     // 受け取り方法ラジオボタン切り替え
     document.querySelectorAll('input[name="deliveryType"]').forEach(radio => {
@@ -572,7 +584,62 @@
     }
 
     // ==========================================
-    // 物資データの登録処理
+    // 📸 猫写真の自動圧縮・プレビュー関連関数
+    // ==========================================
+    async function previewAndCompressCatImage(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      compressedCatFile = await compressImage(file, 800, 0.8);
+
+      const previewBox = document.getElementById('catImagePreviewBox');
+      const previewImg = document.getElementById('catImagePreview');
+      const sizeInfo = document.getElementById('compressedSizeInfo');
+
+      previewImg.src = URL.createObjectURL(compressedCatFile);
+      const kbSize = Math.round(compressedCatFile.size / 1024);
+      sizeInfo.textContent = `軽量化完了（約 ${kbSize} KB）`;
+      previewBox.classList.remove('hidden');
+    }
+
+    function clearCatImage() {
+      compressedCatFile = null;
+      document.getElementById('catImageFileInput').value = '';
+      document.getElementById('catImagePreviewBox').classList.add('hidden');
+    }
+
+    function compressImage(file, maxWidth = 800, quality = 0.8) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width;
+            let height = img.height;
+
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+
+            canvas.toBlob((blob) => {
+              resolve(new File([blob], `cat_${Date.now()}.jpg`, { type: 'image/jpeg' }));
+            }, 'image/jpeg', quality);
+          };
+        };
+      });
+    }
+
+    // ==========================================
+    // 物資データの登録処理（画像アップロード連動）
     // ==========================================
     wishlistForm.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -594,13 +661,35 @@
       const isUrgent = document.getElementById('isUrgent').checked;
       const description = document.getElementById('description').value.trim();
       const affiliateUrl = document.getElementById('affiliateUrl').value.trim() || null;
+      const imageUrl = document.getElementById('itemImageUrlInput').value.trim() || null;
+
+      let uploadedCatImageUrl = null;
 
       try {
+        // 1. 猫写真が選ばれている場合はSupabaseストレージへアップロード
+        if (compressedCatFile) {
+          const filePath = `wishlist_cats/${currentUser.id}/${Date.now()}.jpg`;
+          const { error: uploadError } = await supabaseClient.storage
+            .from('images') // ※Supabaseのバケット名
+            .upload(filePath, compressedCatFile);
+
+          if (uploadError) throw new Error('猫写真のアップロード失敗: ' + uploadError.message);
+
+          const { data: publicUrlData } = supabaseClient.storage
+            .from('images')
+            .getPublicUrl(filePath);
+
+          uploadedCatImageUrl = publicUrlData.publicUrl;
+        }
+
+        // 2. データベースへ保存
         const { error } = await supabaseClient
           .from('wishlist_items')
           .insert([{
             title,
             animal_id: animalId,
+            cat_image_url: uploadedCatImageUrl, // 🥇 挿入された猫画像
+            image_url: imageUrl,                // 🥈 商品画像URL
             target_quantity: targetQuantity,
             current_quantity: 0,
             is_urgent: isUrgent,
@@ -616,6 +705,7 @@
         alert('欲しい物資を登録しました！公開ページ（wishlist.html）に反映されています🐾');
         wishlistForm.reset();
         document.getElementById('targetQuantity').value = 3;
+        clearCatImage();
         loadManagedItems();
 
       } catch (err) {
@@ -753,74 +843,6 @@
     }
 
     window.addEventListener('DOMContentLoaded', checkAuthState);
-    // 🐾 データベースから保護猫一覧を取得してセレクトボックスに反映する関数
-async function loadAnimalsForSelect() {
-  const selectEl = document.getElementById('itemAnimalSelect');
-  if (!selectEl) return;
-
-  try {
-    // 組織IDや団体IDで絞り込む場合は .eq('organization_id', orgId) などを追加してください
-    const { data, error } = await supabaseClient
-      .from('animals')
-      .select('id, name')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    // 既存の選択肢をクリア（先頭の「団体全体用」を残す）
-    selectEl.innerHTML = '<option value="">🏠 団体全体用（特定の猫なし）</option>';
-
-    if (data) {
-      data.forEach(animal => {
-        const option = document.createElement('option');
-        option.value = animal.id;
-        option.textContent = `🐱 ${animal.name} ちゃん`;
-        selectEl.appendChild(option);
-      });
-    }
-  } catch (err) {
-    console.error('保護猫リストの取得に失敗しました:', err);
-  }
-}
-
-// ページ読み込み時に実行
-window.addEventListener('DOMContentLoaded', () => {
-  loadAnimalsForSelect();
-});
-    // 🐾 データベースから保護猫一覧を取得してセレクトボックスに反映する関数
-async function loadAnimalsForSelect() {
-  const selectEl = document.getElementById('itemAnimalSelect');
-  if (!selectEl) return;
-
-  try {
-    // 組織IDや団体IDで絞り込む場合は .eq('organization_id', orgId) などを追加してください
-    const { data, error } = await supabaseClient
-      .from('animals')
-      .select('id, name')
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-
-    // 既存の選択肢をクリア（先頭の「団体全体用」を残す）
-    selectEl.innerHTML = '<option value="">🏠 団体全体用（特定の猫なし）</option>';
-
-    if (data) {
-      data.forEach(animal => {
-        const option = document.createElement('option');
-        option.value = animal.id;
-        option.textContent = `🐱 ${animal.name} ちゃん`;
-        selectEl.appendChild(option);
-      });
-    }
-  } catch (err) {
-    console.error('保護猫リストの取得に失敗しました:', err);
-  }
-}
-
-// ページ読み込み時に実行
-window.addEventListener('DOMContentLoaded', () => {
-  loadAnimalsForSelect();
-});
   </script>
 </body>
 </html>

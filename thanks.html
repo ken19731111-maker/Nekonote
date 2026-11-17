@@ -58,7 +58,7 @@
           <!-- 募集中の物資から選択 -->
           <div class="bg-white p-3.5 rounded-xl border border-indigo-100 space-y-2">
             <label class="block font-bold text-indigo-900">📦 支援された物資を選択（募集中のリストから自動取得）</label>
-            <select id="reportWishlistSelect" onchange="handleWishlistSelectChange()" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500">
+            <select id="reportWishlistSelect" onchange="handleWishlistSelectChange()" class="w-full px-3 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-indigo-500 bg-white">
               <option value="">-- 募集中の物資から選択するか、下の欄に直接入力 --</option>
             </select>
             <p class="text-[11px] text-gray-500">※リストから選ぶと、物資の支援カウント(+個数)とお礼メッセージも自動で更新されます。</p>
@@ -91,9 +91,9 @@
           <div class="bg-white p-3.5 rounded-xl border border-indigo-100 space-y-2">
             <label class="block font-bold text-gray-700">📸 保護猫たちの写真（ミルクを飲んでいる姿など・自動圧縮）</label>
             <input type="file" id="reportImageInput" accept="image/*" onchange="previewAndCompressImage(event)"
-              class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-800 hover:file:bg-indigo-200">
+              class="w-full text-xs text-gray-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-indigo-100 file:text-indigo-800 hover:file:bg-indigo-200 cursor-pointer">
             <div id="imagePreviewContainer" class="hidden pt-2">
-              <img id="imagePreview" class="h-32 rounded-lg object-cover border border-gray-200" alt="プレビュー">
+              <img id="imagePreview" class="h-32 rounded-lg object-cover border border-gray-200 shadow-sm" alt="プレビュー">
               <p id="compressInfo" class="text-[11px] text-emerald-700 font-medium mt-1"></p>
             </div>
           </div>
@@ -172,7 +172,6 @@
         if (profile && profile.organization_id) {
           currentOrgId = profile.organization_id;
         } else {
-          // organizationsテーブルから直接検索（Nekonote側登録データ対応）
           const { data: orgByUser } = await supabaseClient
             .from('organizations')
             .select('id, name')
@@ -190,7 +189,7 @@
           }
         }
 
-        // 自分が募集中の物資リストを取得してプルダウンに並べる
+        // 募集中の物資リストを取得してプルダウンに並べる
         const { data: items } = await supabaseClient
           .from('wishlist_items')
           .select('*, animals(name)')
@@ -302,7 +301,7 @@
           if (targetItem) linkedAnimalId = targetItem.animal_id || null;
         }
 
-        // ① 圧縮画像があれば Supabase Storage にアップロード
+        // ① 圧縮画像があれば Supabase Storage (activity-images) にアップロード
         if (compressedImageBlob) {
           const fileName = `thanks_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.jpg`;
           const filePath = `uploads/${fileName}`;
@@ -321,7 +320,7 @@
           }
         }
 
-        // ② 名簿（volunteers）への自動登録・重複チェック（「匿名」以外、またはメールがある場合）
+        // ② 名簿（volunteers）への自動登録・重複チェック
         if (donorName !== '匿名' || donorEmail) {
           let volQuery = supabaseClient.from('volunteers').select('id').eq('organization_id', currentOrgId);
           if (donorEmail) {
@@ -343,7 +342,7 @@
           }
         }
 
-        // ③ 活動報告・寄付欄（activity_logs）へ自動記録（これがサンクス掲示板の投稿データにもなります）
+        // ③ 活動報告・寄付欄（activity_logs）へ自動記録
         const { error: logError } = await supabaseClient.from('activity_logs').insert([{
           organization_id: currentOrgId,
           type: 'donation',
@@ -359,7 +358,7 @@
 
         if (logError) throw logError;
 
-        // ④ 募集中の物資リスト（wishlist_items）から選ばれていた場合、数量とお礼メッセージも更新
+        // ④ 募集中の物資リスト（wishlist_items）から選ばれていた場合、数量とお礼メッセージを更新
         if (selectedWishlistId) {
           const targetItem = myWishlistItems.find(i => i.id === selectedWishlistId);
           if (targetItem) {
@@ -375,7 +374,7 @@
 
         alert('🎉 支援報告の登録が完了しました！名簿・活動報告・サンクス掲示板に反映されました🐾');
 
-        // ⑤ メールアドレスが入力されている場合、お礼メール送信の案内
+        // ⑤ メールアドレス入力時のお礼メール送信案内
         if (donorEmail) {
           if (confirm(`${donorName} さま（${donorEmail}）へ、今すぐお礼メールを作成して送信しますか？`)) {
             const subject = encodeURIComponent(`【ご支援のお礼】${itemTitle} を受け取りました🐾`);
@@ -391,7 +390,7 @@
           }
         }
 
-        // フォーム初期化と掲示板の再読み込み
+        // フォーム初期化と再読み込み
         document.getElementById('supportReportForm').reset();
         document.getElementById('reportDonorName').value = '匿名';
         document.getElementById('imagePreviewContainer').classList.add('hidden');
@@ -406,9 +405,8 @@
       }
     }
 
-  
-// ==========================================
-    // サンクス掲示板の描画（エラー回避・堅牢版）
+    // ==========================================
+    // 4. サンクス掲示板の描画
     // ==========================================
     async function loadThankYouBoard() {
       const grid = document.getElementById('thanksGrid');
@@ -419,7 +417,6 @@
       grid.innerHTML = '';
 
       try {
-        // リレーションを使わず、activity_logs と animals のみ、または純粋に activity_logs を取得
         const { data, error } = await supabaseClient
           .from('activity_logs')
           .select(`
@@ -445,7 +442,6 @@
         }
 
         reports.forEach(item => {
-          // 団体名は固定、または必要に応じて表示
           const orgName = currentOrgName || '保護猫ボランティア団体';
           const donorDisplay = item.volunteer_name ? `${escapeHtml(item.volunteer_name)} さま` : '匿名 さま';
           const dateStr = new Date(item.created_at).toLocaleDateString('ja-JP');

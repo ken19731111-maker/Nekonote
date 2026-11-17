@@ -135,7 +135,10 @@
     // ==========================================
     function getItemVisual(item) {
       const title = (item.title || '').toLowerCase();
-
+// スタッフが挿入した猫写真
+if (item.cat_image_url) {
+return { src: item.cat_image_url, badge: '🐾 猫ちゃん', type: 'cat'};
+}
       // 【優先度 1】管理画面でその都度挿入・圧縮された猫の写真がある場合
       if (item.cat_image_url) {
         return {

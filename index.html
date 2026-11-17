@@ -455,8 +455,9 @@ let isSignupMode = false;
         .maybeSingle();
 
       if (!error && data) {
-        hasOrgProfile = true;
-        orgStatusBadge.textContent = '設定済み';
+  hasOrgProfile = true;
+  currentOrgId = data.id;
+  orgStatusBadge.textContent = '設定済み';
         orgStatusBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold';
 
         document.getElementById('orgName').value = data.name || '';

@@ -19,7 +19,7 @@
           <p class="text-[11px] text-gray-500">保護猫たちのために、必要なものを必要な分だけ</p>
         </div>
       </div>
-      <a href="index.html" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-3.5 py-2 rounded-full transition">
+      <a href="nekonote.html" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold px-3.5 py-2 rounded-full transition">
         団体スタッフ管理 →
       </a>
     </div>
@@ -131,16 +131,16 @@
 
     // ==========================================
     // 🖼️ 3段階の厳密な画像フォールバック判定ロジック
-    // 優先順位: 1.ねこ(動物画像) ＞ 2.商品画像 ＞ 3.カテゴリー別イラスト
+    // 優先順位: 1.その場挿入の猫写真(cat_image_url) ＞ 2.商品画像URL(image_url) ＞ 3.カテゴリー別イラスト
     // ==========================================
     function getItemVisual(item) {
       const title = (item.title || '').toLowerCase();
 
-      // 【優先度 1】対象の保護猫画像がある場合
-      if (item.animals && item.animals.image_url) {
+      // 【優先度 1】管理画面でその都度挿入・圧縮された猫の写真がある場合
+      if (item.cat_image_url) {
         return {
-          src: item.animals.image_url,
-          badge: `🐾 ${item.animals.name} ちゃん`,
+          src: item.cat_image_url,
+          badge: item.animals ? `🐾 ${item.animals.name} ちゃん` : '🐱 保護猫',
           type: 'cat'
         };
       }
@@ -213,7 +213,7 @@
           .from('wishlist_items')
           .select(`
             *,
-            animals ( name, image_url ),
+            animals ( name ),
             organizations!fk_wishlist_organization ( name, delivery_type, postal_code, address, contact_info, amazon_wishlist_url )
           `)
           .eq('status', 'active')
@@ -350,7 +350,7 @@
         card.innerHTML = `
           <div class="space-y-3">
             <div class="flex items-start gap-4">
-              <!-- 🖼️ 画像表示エリアを少し大きめにサイズアップ (w-20 h-20) -->
+              <!-- 🖼️ 画像表示エリア (w-20 h-20) -->
               <div class="w-20 h-20 rounded-xl border border-amber-200 bg-amber-50 overflow-hidden relative flex items-center justify-center shrink-0 shadow-sm">
                 <img src="${visual.src}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover">
                 <span class="absolute bottom-0 inset-x-0 bg-black/70 text-white text-[9px] font-bold text-center py-0.5 truncate px-1">

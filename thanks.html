@@ -406,8 +406,9 @@
       }
     }
 
-    // ==========================================
-    // 4. サンクス掲示板の描画（activity_logs の donation データを表示）
+  
+// ==========================================
+    // サンクス掲示板の描画（エラー回避・堅牢版）
     // ==========================================
     async function loadThankYouBoard() {
       const grid = document.getElementById('thanksGrid');
@@ -418,12 +419,12 @@
       grid.innerHTML = '';
 
       try {
+        // リレーションを使わず、activity_logs と animals のみ、または純粋に activity_logs を取得
         const { data, error } = await supabaseClient
           .from('activity_logs')
           .select(`
             *,
-            animals ( name ),
-            organizations ( name )
+            animals ( name )
           `)
           .eq('type', 'donation')
           .eq('status', 'approved')
@@ -444,7 +445,8 @@
         }
 
         reports.forEach(item => {
-          const orgName = item.organizations?.name || '登録ボランティア団体';
+          // 団体名は固定、または必要に応じて表示
+          const orgName = currentOrgName || '保護猫ボランティア団体';
           const donorDisplay = item.volunteer_name ? `${escapeHtml(item.volunteer_name)} さま` : '匿名 さま';
           const dateStr = new Date(item.created_at).toLocaleDateString('ja-JP');
 
@@ -492,7 +494,7 @@
 
       } catch (err) {
         console.error('掲示板読み込みエラー:', err);
-        grid.innerHTML = `<p class="col-span-full text-center text-red-500 py-8 text-sm">データの取得に失敗しました: ${err.message}</p>`;
+        grid.innerHTML = `<p class="col-span-full text-center text-red-500 py-8 text-sm">データの取得に失敗しました: ${escapeHtml(err.message)}</p>`;
       } finally {
         loading.classList.add('hidden');
       }

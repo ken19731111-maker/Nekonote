@@ -670,7 +670,7 @@
         if (compressedCatFile) {
           const filePath = `wishlist_cats/${currentUser.id}/${Date.now()}.jpg`;
           const { error: uploadError } = await supabaseClient.storage
-            .from('images') // ※Supabaseのバケット名
+            .from('images')
             .upload(filePath, compressedCatFile);
 
           if (uploadError) throw new Error('猫写真のアップロード失敗: ' + uploadError.message);

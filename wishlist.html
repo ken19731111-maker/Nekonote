@@ -35,22 +35,63 @@
       </p>
     </div>
   </section>
-<div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 mb-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-  <div class="text-xs space-y-0.5 text-center sm:text-left">
-    <div class="font-bold text-emerald-900 flex items-center justify-center sm:justify-start gap-1.5">
-      <span>💌</span> <span>皆様からの温かいご支援と、猫たちの近況報告</span>
+
+  <!-- サンクスページへの案内バナー -->
+  <div class="max-w-5xl mx-auto px-4 mt-6 w-full">
+    <div class="bg-emerald-50/80 border border-emerald-200 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-sm">
+      <div class="text-xs space-y-0.5 text-center sm:text-left">
+        <div class="font-bold text-emerald-900 flex items-center justify-center sm:justify-start gap-1.5">
+          <span>💌</span> <span>皆様からの温かいご支援と、猫たちの近況報告</span>
+        </div>
+        <p class="text-emerald-700">これまでに届いた物資のお礼メッセージや、保護猫たちの様子を公開しています。</p>
+      </div>
+      <a href="thanks.html" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm">
+        ありがとうレポートを見る →
+      </a>
     </div>
-    <p class="text-emerald-700">これまでに届いた物資のお礼メッセージや、保護猫たちの様子を公開しています。</p>
   </div>
-  <a href="thanks.html" class="shrink-0 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition shadow-sm">
-    ありがとうレポートを見る →
-  </a>
-</div>
+
   <!-- メインコンテンツ -->
-  <main class="max-w-5xl mx-auto px-4 py-8 flex-grow w-full">
+  <main class="max-w-5xl mx-auto px-4 py-8 flex-grow w-full space-y-6">
+
+    <!-- 🌟 定番物資クイック選択バー（ご指定のアイテム＆イラスト紐付け対応） -->
+    <section class="bg-white rounded-2xl p-4 border border-amber-200 shadow-sm space-y-2.5">
+      <h3 class="text-xs font-bold text-amber-900 flex items-center gap-1.5">
+        <span>✨</span> よく使う定番物資（クリックすると検索キーワードや入力欄に反映できます）
+      </h3>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="quickSearch('子猫用ミルク')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition flex items-center gap-1">
+          <span>🍼</span> 子猫用ミルク
+        </button>
+        <button type="button" onclick="quickSearch('ペットシーツ')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition flex items-center gap-1">
+          <span>🧻</span> ペットシーツ
+        </button>
+        <button type="button" onclick="quickSearch('トイレ砂')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition flex items-center gap-1">
+          <span>🚽</span> トイレ砂
+        </button>
+        <button type="button" onclick="quickSearch('子猫用ウェットフード')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition flex items-center gap-1">
+          <span>🥫</span> 子猫用ウェットフード
+        </button>
+        <button type="button" onclick="quickSearch('成猫ドライフード')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition flex items-center gap-1">
+          <span>🥣</span> 成猫ドライフード
+        </button>
+        <button type="button" onclick="quickSearch('薬・医療')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition flex items-center gap-1">
+          <span>💊</span> 薬・医療
+        </button>
+        <button type="button" onclick="quickSearch('おもちゃ')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition flex items-center gap-1">
+          <span>🧶</span> おもちゃ
+        </button>
+        <button type="button" onclick="quickSearch('毛布・ベッド')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition flex items-center gap-1">
+          <span>🛌</span> 毛布・ベッド
+        </button>
+        <button type="button" onclick="quickSearch('ケージ')" class="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 border border-amber-200 rounded-xl text-xs font-bold text-amber-900 transition flex items-center gap-1">
+          <span>🏠</span> ケージ
+        </button>
+      </div>
+    </section>
 
     <!-- フィルターバー -->
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-2">
         <button type="button" id="filterAll" class="px-4 py-1.5 rounded-full text-xs font-bold bg-amber-600 text-white shadow-sm transition">
           すべて表示
@@ -108,16 +149,75 @@
       renderItems();
     });
 
-    function getItemVisual(title) {
-      const t = title.toLowerCase();
-      if (t.includes('ミルク') || t.includes('哺乳')) return { icon: '🍼', label: '子猫用ミルク', bg: 'bg-blue-50 text-blue-600 border-blue-100' };
-      if (t.includes('シーツ') || t.includes('シート') || t.includes('ペットシート')) return { icon: '🧻', label: '衛生・シーツ', bg: 'bg-teal-50 text-teal-600 border-teal-100' };
-      if (t.includes('砂') || t.includes('トイレ') || t.includes('サンド')) return { icon: '🚽', label: '猫砂・トイレ', bg: 'bg-indigo-50 text-indigo-600 border-indigo-100' };
-      if (t.includes('ウェット') || t.includes('パウチ') || t.includes('缶') || t.includes('ちゅーる') || t.includes('おやつ')) return { icon: '🥫', label: 'ウェット・おやつ', bg: 'bg-orange-50 text-orange-600 border-orange-100' };
-      if (t.includes('フード') || t.includes('カリカリ') || t.includes('ドライ') || t.includes('ロイヤルカナン')) return { icon: '🥣', label: 'ドライフード', bg: 'bg-amber-50 text-amber-700 border-amber-100' };
-      if (t.includes('薬') || t.includes('ケア') || t.includes('消毒') || t.includes('除菌')) return { icon: '🩺', label: 'ケア・衛生用品', bg: 'bg-rose-50 text-rose-600 border-rose-100' };
-      if (t.includes('おもちゃ') || t.includes('爪とぎ') || t.includes('ベッド') || t.includes('ケージ')) return { icon: '🧶', label: '生活・おもちゃ', bg: 'bg-purple-50 text-purple-600 border-purple-100' };
-      return { icon: '📦', label: '支援物資', bg: 'bg-amber-50 text-amber-700 border-amber-100' };
+    // 定番物資をクリックしたときのクイック検索 / アクション
+    function quickSearch(keyword) {
+      const amazonUrl = buildAmazonSearchUrl(keyword);
+      window.open(amazonUrl, '_blank');
+    }
+
+    // ==========================================
+    // 🖼️ 3段階の画像フォールバック判定ロジック
+    // 優先順位: 1.保護猫画像 ＞ 2.商品URL画像 ＞ 3.定番イラスト
+    // ==========================================
+    function getItemVisual(item) {
+      const title = (item.title || '').toLowerCase();
+
+      // 第1優先：対象の保護猫画像がある場合
+      if (item.animals && item.animals.image_url) {
+        return {
+          src: item.animals.image_url,
+          badge: `🐾 ${item.animals.name} ちゃん`,
+          isIllustration: false
+        };
+      }
+
+      // 第2優先：特定の商品画像URLが入力されている場合（DBの image_url カラム）
+      if (item.image_url) {
+        return {
+          src: item.image_url,
+          badge: '📦 指定商品',
+          isIllustration: false
+        };
+      }
+
+      // 第3優先：定番イラスト（ご用意いただくイラストファイルに対応）
+      let illustrationPath = 'images/default_item.png';
+      let label = '支援物資';
+
+      if (title.includes('ミルク') || title.includes('哺乳')) {
+        illustrationPath = 'images/milk.png';
+        label = '子猫用ミルク';
+      } else if (title.includes('シーツ') || title.includes('シート')) {
+        illustrationPath = 'images/sheets.png';
+        label = 'ペットシーツ';
+      } else if (title.includes('砂') || title.includes('トイレ')) {
+        illustrationPath = 'images/sand.png';
+        label = 'トイレ砂';
+      } else if (title.includes('ウェット') || title.includes('パウチ') || title.includes('缶')) {
+        illustrationPath = 'images/wet_food.png';
+        label = '子猫用ウェットフード';
+      } else if (title.includes('ドライ') || title.includes('フード') || title.includes('カリカリ') || title.includes('ロイヤルカナン')) {
+        illustrationPath = 'images/dry_food.png';
+        label = '成猫ドライフード';
+      } else if (title.includes('薬') || title.includes('医療') || title.includes('ケア')) {
+        illustrationPath = 'images/medical.png';
+        label = '薬・医療';
+      } else if (title.includes('おもちゃ') || title.includes('爪とぎ')) {
+        illustrationPath = 'images/toy.png';
+        label = 'おもちゃ';
+      } else if (title.includes('毛布') || title.includes('ベッド') || title.includes('タオル')) {
+        illustrationPath = 'images/bed.png';
+        label = '毛布・ベッド';
+      } else if (title.includes('ケージ') || title.includes('ゲージ')) {
+        illustrationPath = 'images/cage.png';
+        label = 'ケージ';
+      }
+
+      return {
+        src: illustrationPath,
+        badge: label,
+        isIllustration: true
+      };
     }
 
     function buildAmazonSearchUrl(keyword) {
@@ -144,7 +244,7 @@
           .from('wishlist_items')
           .select(`
             *,
-            animals ( name ),
+            animals ( name, image_url ),
             organizations!fk_wishlist_organization ( name, delivery_type, postal_code, address, contact_info, amazon_wishlist_url )
           `)
           .eq('status', 'active')
@@ -178,7 +278,7 @@
       }
 
       filtered.forEach(item => {
-        const visual = getItemVisual(item.title);
+        const visual = getItemVisual(item);
         const org = item.organizations || {};
         const orgName = org.name || '登録ボランティア団体';
         const orgContact = org.contact_info || '';
@@ -190,7 +290,6 @@
         const amazonSearchUrl = buildAmazonSearchUrl(item.title);
         const rakutenSearchUrl = buildRakutenSearchUrl(item.title);
 
-        // シェア用URL
         const shareText = encodeURIComponent(
           `【${item.is_urgent ? '🚨【緊急SOS】' : '🐾物資支援のお願い'}】\n` +
           `${orgName}さんより「${item.title}」の支援を募集しています！（残り ${remaining} 個）\n` +
@@ -200,7 +299,6 @@
         const xShareUrl = `https://twitter.com/intent/tweet?text=${shareText}&url=${currentUrl}`;
         const lineShareUrl = `https://social-plugins.line.me/lineit/share?url=${currentUrl}&text=${shareText}`;
 
-        // 住所ブロック
         let deliveryHtml = '';
         if (isWishlistMode) {
           deliveryHtml = `
@@ -230,7 +328,6 @@
           `;
         }
 
-        // 購入・支援ボタン
         let actionButtonsHtml = '';
         if (isWishlistMode && org.amazon_wishlist_url) {
           actionButtonsHtml = `
@@ -270,7 +367,6 @@
           `;
         }
 
-        // 完了報告（お礼メッセージ）がある場合の表示ブロック
         let thankYouHtml = '';
         if (item.thank_you_note) {
           thankYouHtml = `
@@ -289,9 +385,12 @@
         card.innerHTML = `
           <div class="space-y-3">
             <div class="flex items-start gap-3.5">
-              <div class="w-14 h-14 rounded-xl border ${visual.bg} flex flex-col items-center justify-center shrink-0">
-                <span class="text-2xl leading-none">${visual.icon}</span>
-                <span class="text-[9px] font-bold mt-1">${visual.label}</span>
+              <!-- 🖼️ 3段階フォールバック画像表示エリア -->
+              <div class="w-16 h-16 rounded-xl border border-amber-200 bg-amber-50 overflow-hidden relative flex items-center justify-center shrink-0">
+                <img src="${visual.src}" alt="${escapeHtml(item.title)}" class="w-full h-full object-cover">
+                <span class="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[8px] font-bold text-center py-0.5 truncate px-1">
+                  ${visual.badge}
+                </span>
               </div>
 
               <div class="flex-grow min-w-0">

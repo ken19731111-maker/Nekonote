@@ -736,6 +736,74 @@
     }
 
     window.addEventListener('DOMContentLoaded', checkAuthState);
+    // 🐾 データベースから保護猫一覧を取得してセレクトボックスに反映する関数
+async function loadAnimalsForSelect() {
+  const selectEl = document.getElementById('itemAnimalSelect');
+  if (!selectEl) return;
+
+  try {
+    // 組織IDや団体IDで絞り込む場合は .eq('organization_id', orgId) などを追加してください
+    const { data, error } = await supabaseClient
+      .from('animals')
+      .select('id, name')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // 既存の選択肢をクリア（先頭の「団体全体用」を残す）
+    selectEl.innerHTML = '<option value="">🏠 団体全体用（特定の猫なし）</option>';
+
+    if (data) {
+      data.forEach(animal => {
+        const option = document.createElement('option');
+        option.value = animal.id;
+        option.textContent = `🐱 ${animal.name} ちゃん`;
+        selectEl.appendChild(option);
+      });
+    }
+  } catch (err) {
+    console.error('保護猫リストの取得に失敗しました:', err);
+  }
+}
+
+// ページ読み込み時に実行
+window.addEventListener('DOMContentLoaded', () => {
+  loadAnimalsForSelect();
+});
+    // 🐾 データベースから保護猫一覧を取得してセレクトボックスに反映する関数
+async function loadAnimalsForSelect() {
+  const selectEl = document.getElementById('itemAnimalSelect');
+  if (!selectEl) return;
+
+  try {
+    // 組織IDや団体IDで絞り込む場合は .eq('organization_id', orgId) などを追加してください
+    const { data, error } = await supabaseClient
+      .from('animals')
+      .select('id, name')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+
+    // 既存の選択肢をクリア（先頭の「団体全体用」を残す）
+    selectEl.innerHTML = '<option value="">🏠 団体全体用（特定の猫なし）</option>';
+
+    if (data) {
+      data.forEach(animal => {
+        const option = document.createElement('option');
+        option.value = animal.id;
+        option.textContent = `🐱 ${animal.name} ちゃん`;
+        selectEl.appendChild(option);
+      });
+    }
+  } catch (err) {
+    console.error('保護猫リストの取得に失敗しました:', err);
+  }
+}
+
+// ページ読み込み時に実行
+window.addEventListener('DOMContentLoaded', () => {
+  loadAnimalsForSelect();
+});
   </script>
 </body>
 </html>

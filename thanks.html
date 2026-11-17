@@ -25,7 +25,43 @@
       </a>
     </div>
   </header>
-
+<!-- 🔐 管理者専用：支援報告・お礼登録フォーム（デフォルトは hidden で非表示） -->
+<section id="adminReportFormSection" class="hidden max-w-5xl mx-auto px-4 mb-8">
+  <div class="bg-indigo-50 border border-indigo-200 rounded-2xl p-6 shadow-sm space-y-4">
+    <h3 class="text-sm font-bold text-indigo-900 flex items-center gap-1.5">
+      <span>📝</span> <span>【管理者専用】新しい支援報告・お礼メッセージの登録</span>
+    </h3>
+    <form id="supportReportForm" onsubmit="handleSupportReportSubmit(event)" class="space-y-3 text-xs">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div>
+          <label class="block font-bold text-gray-700 mb-1">支援者さまのお名前 <span class="text-red-500">*</span></label>
+          <input type="text" id="reportDonorName" required placeholder="例: 山田 太郎 様" class="w-full px-3 py-2 rounded-lg border border-gray-300">
+        </div>
+        <div>
+          <label class="block font-bold text-gray-700 mb-1">支援者さまのメールアドレス（任意・名簿用）</label>
+          <input type="email" id="reportDonorEmail" placeholder="yamada@example.com" class="w-full px-3 py-2 rounded-lg border border-gray-300">
+        </div>
+        <div>
+          <label class="block font-bold text-gray-700 mb-1">支援された物資のタイトル <span class="text-red-500">*</span></label>
+          <input type="text" id="reportItemTitle" required placeholder="例: ロイヤルカナン 子猫用ミルク" class="w-full px-3 py-2 rounded-lg border border-gray-300">
+        </div>
+        <div>
+          <label class="block font-bold text-gray-700 mb-1">個数・数量 <span class="text-red-500">*</span></label>
+          <input type="number" id="reportQuantity" min="1" value="1" required class="w-full px-3 py-2 rounded-lg border border-gray-300">
+        </div>
+      </div>
+      <div>
+        <label class="block font-bold text-gray-700 mb-1">お礼・近況報告メッセージ <span class="text-red-500">*</span></label>
+        <textarea id="reportMessage" rows="2" required placeholder="例: 温かいミルクをご支援いただきありがとうございます！みんな元気に育っています🐾" class="w-full px-3 py-2 rounded-lg border border-gray-300"></textarea>
+      </div>
+      <div class="flex justify-end">
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-5 rounded-lg transition shadow-sm">
+          ✨ 報告を登録して名簿＆活動ログに自動連動する
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
   <!-- ヒーローバナー -->
   <section class="bg-gradient-to-r from-emerald-600 to-teal-600 text-white py-8 px-4">
     <div class="max-w-5xl mx-auto text-center space-y-2">
@@ -147,6 +183,120 @@
     }
 
     window.addEventListener('DOMContentLoaded', loadThankYouItems);
+    // ページの読み込み時にログイン状態をチェックする
+async function checkAuthAndInit() {
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  
+  const adminFormSection = document.getElementById('adminReportFormSection');
+  
+  if (session && session.user) {
+    // 🔐 ログイン中の場合：管理者用フォームを表示する
+    if (adminFormSection) adminFormSection.classList.remove('hidden');
+    console.log('管理者としてログイン中：入力フォームを表示します');
+  } else {
+    // 👤 未ログイン（一般・支援者）の場合：閲覧のみ（フォームは隠す）
+    if (adminFormSection) adminFormSection.classList.add('hidden');
+  }
+
+  // サンクス一覧データの取得
+  loadThankYouItems();
+}
+
+window.addEventListener('DOMContentLoaded', checkAuthAndInit);
+    async function handleSupportReportSubmit(e) {
+  e.preventDefault();
+
+  const donorName = document.getElementById('reportDonorName').value.trim();
+  const donorEmail = document.getElementById('reportDonorEmail').value.trim() || null;
+  const itemTitle = document.getElementById('reportItemTitle').value.trim();
+  const quantity = parseInt(document.getElementById('reportQuantity').value) || 1;
+  const message = document.getElementById('reportMessage').value.trim();
+
+  // 現在ログイン中のユーザー情報を取得（組織IDなどを紐付けるため）
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) {
+    alert('セッションが切れました。再度ログインしてください。');
+    return;
+  }
+  
+  // ログインユーザーの組織IDを取得する（profiles テーブル等から）
+  const userId = session.user.id;
+  const { data: profile } = await supabaseClient
+    .from('profiles')
+    .select('organization_id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  // 組織IDが決まっていない場合のフォールバック（最初の組織を取得するなど）
+  let orgId = profile ? profile.organization_id : null;
+  if (!orgId) {
+    const { data: orgData } = await supabaseClient.from('organizations').select('id').limit(1).maybeSingle();
+    if (orgData) orgId = orgData.id;
+  }
+
+  if (!orgId) {
+    alert('紐づく団体情報が見つかりませんでした。');
+    return;
+  }
+
+  try {
+    // ==========================================
+    // 1. 名簿（volunteers）への自動登録・重複チェック
+    // ==========================================
+    let volunteerId = null;
+    let query = supabaseClient.from('volunteers').select('id').eq('organization_id', orgId);
+    if (donorEmail) {
+      query = query.eq('email', donorEmail);
+    } else {
+      query = query.eq('name', donorName);
+    }
+    const { data: existingVol } = await query.maybeSingle();
+
+    if (existingVol) {
+      volunteerId = existingVol.id;
+    } else {
+      const { data: newVol, error: volError } = await supabaseClient
+        .from('volunteers')
+        .insert([{
+          organization_id: orgId,
+          name: donorName,
+          email: donorEmail,
+          role: '寄付者・サポーター',
+          member_type: 'donor' // 寄付者区分
+        }])
+        .select()
+        .single();
+      if (!volError && newVol) volunteerId = newVol.id;
+    }
+
+    // ==========================================
+    // 2. 活動報告・寄付欄（activity_logs）への自動記録
+    // ==========================================
+    const { error: logError } = await supabaseClient
+      .from('activity_logs')
+      .insert([{
+        organization_id: orgId,
+        type: 'donation', // 物資寄付
+        volunteer_name: donorName,
+        category: 'フード', // 必要に応じて自動判定や選択式にしてもOK
+        title: `【物資支援】${itemTitle} × ${quantity}個`,
+        amount: quantity,
+        details: message, // お礼メッセージ（掲示板に表示）
+        status: 'approved' // 管理者入力なので即時承認
+      }]);
+
+    if (logError) throw logError;
+
+    alert('🎉 支援報告の登録が完了しました！名簿と活動ログ、サンクス掲示板に反映されました🐾');
+    
+    // フォームをリセットして一覧を再読み込み
+    document.getElementById('supportReportForm').reset();
+    loadThankYouItems();
+
+  } catch (err) {
+    alert('登録エラー: ' + err.message);
+  }
+}
   </script>
 </body>
 </html>

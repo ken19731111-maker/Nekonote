@@ -210,12 +210,12 @@
 
       try {
         const { data, error } = await supabaseClient
-          .from('wishlist_items')
-          .select(`
-            *,
-            animals ( name ),
-            organizations!fk_wishlist_organization ( name, delivery_type, postal_code, address, contact_info, amazon_wishlist_url )
-          `)
+         .from('wishlist_items')
+.select(`
+  *,
+  animals ( name, image_url ),
+  organizations ( name, delivery_type, postal_code, address, contact_info, amazon_wishlist_url )
+`)
           .eq('status', 'active')
           .order('is_urgent', { ascending: false })
           .order('created_at', { ascending: false });

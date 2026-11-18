@@ -289,7 +289,7 @@ return { src: item.cat_image_url, badge: '🐾 猫ちゃん', type: 'cat'};
           deliveryHtml = `
             <div class="bg-amber-50/80 border border-amber-200 rounded-lg p-3 text-xs space-y-2">
               <div class="flex items-center justify-between">
-                <span class="font-bold text-amber-950">🏠 送り先情報</span>
+                <span class="font-bold text-amber-950">🏠 ${escapeHtml(orgName)}</span>
                 <button type="button" onclick="toggleAddress('${addressId}')"
                   class="bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-bold px-2.5 py-1 rounded-lg transition shadow-sm">
                   👁️ 送り先を表示・コピー

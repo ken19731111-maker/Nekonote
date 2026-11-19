@@ -395,16 +395,21 @@
                 </div>
               </div>
 
-              ${deliveryHtml}
               ${thankYouHtml}
             </div>
 
-            <!-- アクションボタンエリア -->
-            <div class="pt-2 border-t border-gray-100 space-y-2">
+            <!-- アクションボタンエリア：物資支援とシェアを明確に分ける -->
+            <div class="pt-3 border-t border-gray-100">
+              <p class="text-[11px] font-bold text-gray-500 mb-2">📦 物資で支援する</p>
               ${actionButtonsHtml}
-              <div class="grid grid-cols-2 gap-2 pt-1">
-                <a href="${xShareUrl}" target="_blank" rel="noopener noreferrer" class="text-center bg-black hover:bg-gray-800 text-white font-bold text-[11px] py-2 px-2 rounded-lg transition flex items-center justify-center gap-1 shadow-sm"><span>🏱</span> <span>Xでシェア</span></a>
-                <a href="${lineShareUrl}" target="_blank" rel="noopener noreferrer" class="text-center bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-[11px] py-2 px-2 rounded-lg transition flex items-center justify-center gap-1 shadow-sm"><span>💬</span> <span>LINEで送る</span></a>
+              <div class="mt-2.5">${deliveryHtml}</div>
+
+              <div class="mt-4 pt-3 border-t border-dashed border-gray-200">
+                <p class="text-[11px] font-bold text-gray-500 mb-2">📣 シェアして応援する</p>
+                <div class="grid grid-cols-2 gap-2">
+                  <a href="${xShareUrl}" target="_blank" rel="noopener noreferrer" class="text-center bg-black hover:bg-gray-800 text-white font-bold text-[11px] py-2 px-2 rounded-lg transition flex items-center justify-center gap-1 shadow-sm"><span>🏱</span> <span>Xでシェア</span></a>
+                  <a href="${lineShareUrl}" target="_blank" rel="noopener noreferrer" class="text-center bg-[#06C755] hover:bg-[#05b34c] text-white font-bold text-[11px] py-2 px-2 rounded-lg transition flex items-center justify-center gap-1 shadow-sm"><span>💬</span> <span>LINEで送る</span></a>
+                </div>
               </div>
             </div>
           </div>

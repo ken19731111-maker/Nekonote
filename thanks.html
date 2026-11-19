@@ -171,22 +171,25 @@
 
         if (profile && profile.organization_id) {
           currentOrgId = profile.organization_id;
+          const { data: orgById } = await supabaseClient
+            .from('organizations')
+            .select('name')
+            .eq('id', profile.organization_id)
+            .maybeSingle();
+          if (orgById) currentOrgName = orgById.name;
         } else {
           const { data: orgByUser } = await supabaseClient
             .from('organizations')
             .select('id, name')
-            .eq('user_id', session.user.id)
+            .eq('owner_user_id', session.user.id)
             .maybeSingle();
           if (orgByUser) {
             currentOrgId = orgByUser.id;
             currentOrgName = orgByUser.name;
-          } else {
-            const { data: firstOrg } = await supabaseClient.from('organizations').select('id, name').limit(1).maybeSingle();
-            if (firstOrg) {
-              currentOrgId = firstOrg.id;
-              currentOrgName = firstOrg.name;
-            }
           }
+          // ※団体が見つからない場合は currentOrgId = null のまま。
+          //   無関係な団体を誤って使わないよう、先頭1件フォールバックはしない
+          //   （報告登録時に handleSupportReportSubmit 側で警告が出る）
         }
 
         // 募集中の物資リストを取得してプルダウンに並べる
@@ -421,7 +424,8 @@
           .from('activity_logs')
           .select(`
             *,
-            animals ( name )
+            animals ( name ),
+            organizations ( name )
           `)
           .eq('type', 'donation')
           .eq('status', 'approved')
@@ -442,7 +446,7 @@
         }
 
         reports.forEach(item => {
-          const orgName = currentOrgName || '保護猫ボランティア団体';
+          const orgName = (item.organizations && item.organizations.name) || '保護猫ボランティア団体';
           const donorDisplay = item.volunteer_name ? `${escapeHtml(item.volunteer_name)} さま` : '匿名 さま';
           const dateStr = new Date(item.created_at).toLocaleDateString('ja-JP');
 

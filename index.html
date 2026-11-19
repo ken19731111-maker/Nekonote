@@ -382,15 +382,16 @@ let isSignupMode = false;
       });
     }
 
-    function updateUIForUser(user) {
+    async function updateUIForUser(user) {
       currentUser = user;
       if (user) {
         loginSection.classList.add('hidden');
         formSection.classList.remove('hidden');
         logoutBtn.classList.remove('hidden');
         userEmailDisplay.textContent = user.email;
-        
-        loadOrganizationProfile();
+
+        // 先に団体プロフィールを読み、currentOrgId を確定させてから猫リストを読む
+        await loadOrganizationProfile();
         loadAnimals();
         loadTitleHistory();
         loadManagedItems();
@@ -527,6 +528,9 @@ name,
         orgStatusBadge.textContent = '設定済み';
         orgStatusBadge.className = 'text-xs px-2.5 py-0.5 rounded-full bg-green-100 text-green-700 font-bold';
         alert('団体プロフィールを保存しました！');
+        // 保存した団体の id を取り直し、猫リストも自団体分に更新する
+        await loadOrganizationProfile();
+        loadAnimals();
       } catch (err) {
         alert('保存エラー: ' + err.message);
       } finally {
@@ -542,9 +546,13 @@ name,
       const select = document.getElementById('animalId');
       select.innerHTML = '<option value="">🏠 団体全体用（特定の猫を指定しない）</option>';
 
+      // 団体が未確定（プロフィール未保存）のうちは、他団体の猫を出さないよう猫リストは空にしておく
+      if (!currentOrgId) return;
+
       const { data, error } = await supabaseClient
         .from('animals')
         .select('id, name')
+        .eq('organization_id', currentOrgId)
         .order('created_at', { ascending: false });
 
       if (!error && data) {

@@ -48,6 +48,9 @@
         </button>
       </div>
 
+      <!-- 招待URL（?org=slug）で開かれた時だけ表示するバナー -->
+      <div id="inviteBanner" class="hidden mb-5 text-sm rounded-lg p-3.5 border"></div>
+
       <form id="authForm" class="space-y-4">
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">メールアドレス</label>
@@ -107,10 +110,13 @@
         <span>認証済みスタッフ</span>
       </div>
 
+      <!-- 招待なし・他団体の招待などの場合に、管理セクションの代わりへ表示する案内 -->
+      <div id="orgGateNotice" class="hidden bg-white rounded-xl p-6 md:p-8 shadow-sm border border-amber-200 text-sm text-gray-700"></div>
+
       <!-- ==========================================
            A. 団体プロフィール設定（初回・変更時のみ）
            ========================================== -->
-      <div class="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-amber-200">
+      <div class="org-required bg-white rounded-xl p-6 md:p-8 shadow-sm border border-amber-200">
         <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
           <h2 class="text-lg font-bold text-gray-800">🏠 うちの団体プロフィール設定</h2>
           <span id="orgStatusBadge" class="text-xs px-2.5 py-0.5 rounded-full bg-red-100 text-red-700 font-bold">未設定</span>
@@ -202,7 +208,7 @@
       <!-- ==========================================
            B. 新しい欲しい物資を登録するフォーム
            ========================================== -->
-      <div class="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-gray-200">
+      <div class="org-required bg-white rounded-xl p-6 md:p-8 shadow-sm border border-gray-200">
         <h2 class="text-lg font-bold text-gray-800 mb-4 pb-2 border-b border-gray-100">📦 新しい欲しい物資を登録する</h2>
 
         <!-- クイック選択タグ（定番物資） -->
@@ -305,7 +311,7 @@
       <!-- ==========================================
            C. 登録済みの物資一覧（管理・募集終了・削除）
            ========================================== -->
-      <div class="bg-white rounded-xl p-6 md:p-8 shadow-sm border border-gray-200">
+      <div class="org-required bg-white rounded-xl p-6 md:p-8 shadow-sm border border-gray-200">
         <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100">
           <h2 class="text-lg font-bold text-gray-800 flex items-center gap-2">
             <span>📋 登録済みの物資一覧</span>
@@ -361,6 +367,9 @@
 
     let currentUser = null;
 let currentOrgId = null;
+let inviteSlug = null;
+let inviteOrg = null;
+let inviteReady = null;
 let isSignupMode = false;
     let hasOrgProfile = false;
     let compressedCatFile = null; // 圧縮後の猫写真ファイルデータ
@@ -406,8 +415,86 @@ let isSignupMode = false;
     tabLogin.addEventListener('click', () => switchAuthMode(false));
     tabSignup.addEventListener('click', () => switchAuthMode(true));
 
+    // ==========================================
+    // 招待URL（?org=slug）方式：団体は招待されてから利用を開始する
+    // ==========================================
+    async function resolveInvite() {
+      const params = new URLSearchParams(window.location.search);
+      let slug = params.get('org');
+      try {
+        if (slug) localStorage.setItem('nekonote_invite_slug', slug);
+        else slug = localStorage.getItem('nekonote_invite_slug');
+      } catch (e) { /* localStorage が使えない環境ではURLパラメータのみで動く */ }
+      if (!slug) return;
+      inviteSlug = slug;
+
+      const { data } = await supabaseClient
+        .from('organizations')
+        .select('id, name, owner_user_id')
+        .eq('slug', slug)
+        .maybeSingle();
+
+      const banner = document.getElementById('inviteBanner');
+      if (data) {
+        inviteOrg = data;
+        banner.className = 'mb-5 text-sm rounded-lg p-3.5 border bg-amber-50 border-amber-200 text-amber-900';
+        banner.innerHTML = '🎁 <strong>' + escapeHtml(data.name) + '</strong> への招待URLです。<br>このままログイン／新規登録すると、この団体のスタッフとして利用を開始できます。';
+      } else {
+        banner.className = 'mb-5 text-sm rounded-lg p-3.5 border bg-red-50 border-red-200 text-red-700';
+        banner.textContent = '⚠️ この招待URLの団体が見つかりませんでした。URLが正しいか、運営へご確認ください。';
+      }
+      banner.classList.remove('hidden');
+    }
+
+    // 招待団体の引き継ぎ判定。問題があれば案内文を返す（なければ null）
+    async function applyInviteGate(user) {
+      if (!inviteOrg) return null;
+      if (!inviteOrg.owner_user_id) {
+        // オーナー未設定の団体 → このアカウントをオーナーとして引き継ぐ
+        const { data: claimed, error } = await supabaseClient
+          .from('organizations')
+          .update({ owner_user_id: user.id })
+          .eq('id', inviteOrg.id)
+          .is('owner_user_id', null)
+          .select()
+          .maybeSingle();
+        if (!error && claimed) {
+          inviteOrg = claimed;
+          try { localStorage.removeItem('nekonote_invite_slug'); } catch (e) {}
+          return null;
+        }
+        // 先に誰かが引き継いだ等の場合は、最新状態で判定し直す
+        const { data: fresh } = await supabaseClient
+          .from('organizations')
+          .select('id, name, owner_user_id')
+          .eq('id', inviteOrg.id)
+          .maybeSingle();
+        if (fresh) inviteOrg = fresh;
+        if (inviteOrg && !inviteOrg.owner_user_id) {
+          return '⚠️ このアカウントには既に別の団体が登録されているため、この招待URLは使えません。';
+        }
+      }
+      if (inviteOrg.owner_user_id && inviteOrg.owner_user_id !== user.id) {
+        return '🔒 この団体（' + escapeHtml(inviteOrg.name) + '）は、既に別のアカウントで登録されています。<br>団体の管理者アカウントでログインし直してください。心当たりがない場合は運営へご連絡ください。';
+      }
+      return null;
+    }
+
+    function showOrgGate(html) {
+      const notice = document.getElementById('orgGateNotice');
+      notice.innerHTML = html;
+      notice.classList.remove('hidden');
+      document.querySelectorAll('.org-required').forEach(el => el.classList.add('hidden'));
+    }
+
+    function hideOrgGate() {
+      document.getElementById('orgGateNotice').classList.add('hidden');
+      document.querySelectorAll('.org-required').forEach(el => el.classList.remove('hidden'));
+    }
+
     // 認証状態監視
     async function checkAuthState() {
+      inviteReady = resolveInvite();
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (window.location.hash.includes('type=recovery')) {
         // リセットリンクから戻った直後はダッシュボードを出さず、再設定フォームを出す
@@ -437,8 +524,21 @@ let isSignupMode = false;
         logoutBtn.classList.remove('hidden');
         userEmailDisplay.textContent = user.email;
 
+        // 招待URLで来た場合は、先に団体の引き継ぎ（claim）を行う
+        if (inviteReady) await inviteReady;
+        const gateMessage = await applyInviteGate(user);
+        if (gateMessage) {
+          showOrgGate(gateMessage);
+          return;
+        }
+
         // 先に団体プロフィールを読み、currentOrgId を確定させてから猫リストを読む
         await loadOrganizationProfile();
+        if (!currentOrgId) {
+          showOrgGate('🏠 まだ団体が登録されていません。<br>Nekonote のご利用は招待制です。運営から送られた招待URL（QRコード）を開いて、もう一度ログインしてください。');
+          return;
+        }
+        hideOrgGate();
         loadAnimals();
         loadTitleHistory();
         loadManagedItems();

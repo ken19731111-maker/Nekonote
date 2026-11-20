@@ -195,7 +195,7 @@
         // 募集中の物資リストを取得してプルダウンに並べる
         const { data: items } = await supabaseClient
           .from('wishlist_items')
-          .select('*, animals(name)')
+          .select('*, cats(name)')
           .order('created_at', { ascending: false });
 
         if (items) {
@@ -204,7 +204,7 @@
           items.forEach(item => {
             const opt = document.createElement('option');
             opt.value = item.id;
-            const animalLabel = item.animals ? ` (${item.animals.name}ちゃん用)` : '';
+            const animalLabel = item.cats ? ` (${item.cats.name}ちゃん用)` : '';
             opt.textContent = `${item.title}${animalLabel} [現在 ${item.current_quantity}/${item.target_quantity}個]`;
             select.appendChild(opt);
           });
@@ -301,7 +301,7 @@
 
         if (selectedWishlistId) {
           const targetItem = myWishlistItems.find(i => i.id === selectedWishlistId);
-          if (targetItem) linkedAnimalId = targetItem.animal_id || null;
+          if (targetItem) linkedAnimalId = targetItem.cat_id || null;
         }
 
         // ① 圧縮画像があれば Supabase Storage (activity-images) にアップロード
@@ -351,7 +351,7 @@
           type: 'donation',
           volunteer_name: donorName,
           category: 'フード',
-          animal_id: linkedAnimalId,
+          cat_id: linkedAnimalId,
           title: `【物資支援】${itemTitle} × ${quantity}個`,
           amount: quantity,
           details: message,
@@ -424,7 +424,7 @@
           .from('activity_logs')
           .select(`
             *,
-            animals ( name ),
+            cats ( name ),
             organizations ( name )
           `)
           .eq('type', 'donation')
@@ -484,7 +484,7 @@
             </div>
 
             <div class="px-5 py-3 bg-gray-50 border-t border-gray-100 text-[11px] text-gray-500 flex justify-between items-center">
-              <span>${item.animals ? `🐱 ${escapeHtml(item.animals.name)} ちゃんへ` : '🏠 団体のみんなへ'}</span>
+              <span>${item.cats ? `🐱 ${escapeHtml(item.cats.name)} ちゃんへ` : '🏠 団体のみんなへ'}</span>
               <span class="text-emerald-700 font-bold">✨ ありがとうございました！</span>
             </div>
           `;

@@ -760,7 +760,7 @@ name,
       if (!currentOrgId) return;
 
       const { data, error } = await supabaseClient
-        .from('animals')
+        .from('cats')
         .select('id, name')
         .eq('organization_id', currentOrgId)
         .order('created_at', { ascending: false });
@@ -907,7 +907,7 @@ name,
           .from('wishlist_items')
           .insert([{
             title,
-            animal_id: animalId,
+            cat_id: animalId,
             cat_image_url: uploadedCatImageUrl, // 🥇 挿入された猫画像
             image_url: imageUrl,                // 🥈 商品画像URL
             target_quantity: targetQuantity,
@@ -951,7 +951,7 @@ name,
       try {
         const { data, error } = await supabaseClient
           .from('wishlist_items')
-          .select(`*, animals ( name )`)
+          .select(`*, cats ( name )`)
           .eq('created_by', currentUser.id)
           .order('created_at', { ascending: false });
 
@@ -979,7 +979,7 @@ name,
             ? `<span class="bg-red-100 text-red-600 text-xs font-bold px-2 py-0.5 rounded-full">🚨 緊急</span>`
             : '';
 
-          const catInfo = item.animals ? `🐱 ${escapeHtml(item.animals.name)} ちゃん用` : `🏠 団体全体用`;
+          const catInfo = item.cats ? `🐱 ${escapeHtml(item.cats.name)} ちゃん用` : `🏠 団体全体用`;
 
           const row = document.createElement('div');
           row.className = `p-4 rounded-lg border ${isActive ? 'bg-white border-gray-200' : 'bg-gray-50 border-gray-200 opacity-75'} flex flex-col sm:flex-row sm:items-center justify-between gap-4`;

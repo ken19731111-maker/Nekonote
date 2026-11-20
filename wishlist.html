@@ -133,7 +133,7 @@
 
     // ==========================================
     // 🖼️ 画像フォールバック判定ロジック
-    // 優先順位: 1.その場挿入の猫写真(cat_image_url) ＞ 2.対象猫の登録写真(animals.image_url)
+    // 優先順位: 1.その場挿入の猫写真(cat_image_url) ＞ 2.対象猫の登録写真(cats.image_url)
     //           ＞ 3.商品画像URL(image_url) ＞ 4.カテゴリー別イラスト
     // ==========================================
     function getItemVisual(item) {
@@ -143,16 +143,16 @@
       if (item.cat_image_url) {
         return {
           src: item.cat_image_url,
-          badge: item.animals ? `🐾 ${item.animals.name} ちゃん` : '🐾 猫ちゃん',
+          badge: item.cats ? `🐾 ${item.cats.name} ちゃん` : '🐾 猫ちゃん',
           type: 'cat'
         };
       }
 
       // 【優先度 2】対象の保護猫の登録写真がある場合
-      if (item.animals && item.animals.image_url) {
+      if (item.cats && item.cats.image_url) {
         return {
-          src: item.animals.image_url,
-          badge: `🐾 ${item.animals.name} ちゃん`,
+          src: item.cats.image_url,
+          badge: `🐾 ${item.cats.name} ちゃん`,
           type: 'cat'
         };
       }
@@ -225,7 +225,7 @@
          .from('wishlist_items')
 .select(`
   *,
-  animals ( name, image_url ),
+  cats ( name, image_url ),
   organizations ( name, delivery_type, postal_code, address, contact_info, amazon_wishlist_url )
 `)
           .eq('status', 'active')
@@ -374,7 +374,7 @@
               <div>
                 <div class="flex flex-wrap items-center gap-1.5 mb-1">
                   <span class="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    ${item.animals ? `🐱 ${escapeHtml(item.animals.name)} ちゃん用` : '🏠 団体全体用'}
+                    ${item.cats ? `🐱 ${escapeHtml(item.cats.name)} ちゃん用` : '🏠 団体全体用'}
                   </span>
                 </div>
                 <h3 class="font-bold text-gray-900 text-base leading-snug">${escapeHtml(item.title)}</h3>

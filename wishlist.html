@@ -81,6 +81,12 @@
       <p id="itemCountDisplay" class="text-xs text-gray-500 font-medium">読み込み中...</p>
     </div>
 
+    <!-- 対象しぼり込みバナー（にゃんスタ等からの直リンク時） -->
+    <div id="targetBanner" class="hidden items-center justify-between gap-3 bg-amber-50 border border-amber-300 rounded-xl px-4 py-2.5 mt-4">
+      <p id="targetBannerText" class="text-xs font-bold text-amber-900"></p>
+      <button type="button" onclick="clearTarget()" class="text-xs font-bold bg-white border border-amber-300 text-amber-800 rounded-full px-3 py-1 whitespace-nowrap">× すべて表示</button>
+    </div>
+
     <!-- ローディング -->
     <div id="loadingState" class="text-center py-16 text-gray-500 text-sm">物資リストを読み込んでいます...</div>
 
@@ -116,6 +122,27 @@
 
     let allItems = [];
     let showUrgentOnly = false;
+
+    // にゃんスタ等からの直リンク（?cat=<猫ID> / ?org=<団体ID>）で対象だけに絞る
+    const urlParams = new URLSearchParams(window.location.search);
+    let targetCatId = urlParams.get('cat');
+    let targetOrgId = urlParams.get('org');
+    let targetLabel = '';
+
+    function updateTargetBanner() {
+      const banner = document.getElementById('targetBanner');
+      if (!targetCatId && !targetOrgId) { banner.classList.add('hidden'); banner.classList.remove('flex'); return; }
+      document.getElementById('targetBannerText').textContent = targetCatId
+        ? `🐱 「${targetLabel || 'この猫'}」への物資を表示中`
+        : `🏠 「${targetLabel || 'この団体'}」の物資を表示中`;
+      banner.classList.remove('hidden'); banner.classList.add('flex');
+    }
+    function clearTarget() {
+      targetCatId = null; targetOrgId = null; targetLabel = '';
+      history.replaceState({}, '', window.location.pathname);
+      updateTargetBanner();
+      renderItems();
+    }
     // 送り先情報は初期HTMLに埋め込まず、「送る」ボタンを押したときだけ描画する
     const deliveryStore = {};
 
@@ -241,6 +268,22 @@
         if (error) throw error;
 
         allItems = data || [];
+        if (targetCatId) {
+          const hit = allItems.find(i => i.cat_id === targetCatId);
+          if (hit && hit.cats) targetLabel = hit.cats.name || '';
+          if (!targetLabel) {
+            const { data: catRow } = await supabaseClient.from('cats').select('name').eq('id', targetCatId).single();
+            if (catRow) targetLabel = catRow.name || '';
+          }
+        } else if (targetOrgId) {
+          const hit = allItems.find(i => i.organization_id === targetOrgId);
+          if (hit && hit.organizations) targetLabel = hit.organizations.name || '';
+          if (!targetLabel) {
+            const { data: orgRow } = await supabaseClient.from('organizations').select('name').eq('id', targetOrgId).single();
+            if (orgRow) targetLabel = orgRow.name || '';
+          }
+        }
+        updateTargetBanner();
         renderItems();
       } catch (err) {
         console.error('読み込みエラー:', err);
@@ -251,14 +294,20 @@
     }
 
     function renderItems() {
-      const filtered = showUrgentOnly ? allItems.filter(i => i.is_urgent) : allItems;
+      let filtered = allItems;
+      if (targetCatId) filtered = filtered.filter(i => i.cat_id === targetCatId);
+      else if (targetOrgId) filtered = filtered.filter(i => i.organization_id === targetOrgId);
+      if (showUrgentOnly) filtered = filtered.filter(i => i.is_urgent);
       itemCountDisplay.textContent = `現在 ${filtered.length} 件の支援を募集中`;
       wishlistGrid.innerHTML = '';
 
       if (filtered.length === 0) {
+        const targetActive = targetCatId || targetOrgId;
         wishlistGrid.innerHTML = `
           <div class="col-span-full bg-white rounded-xl p-10 text-center border border-gray-200 text-gray-500 text-sm">
-            現在表示できる募集中の物資はありません🐾
+            ${targetActive
+              ? `🐱 「${targetLabel || '対象'}」への物資は、現在募集していません。<br><button type="button" onclick="clearTarget()" class="mt-3 bg-amber-600 text-white text-xs font-bold px-4 py-2 rounded-full">すべての募集を見る</button>`
+              : '現在表示できる募集中の物資はありません🐾'}
           </div>
         `;
         return;

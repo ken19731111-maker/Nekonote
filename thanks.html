@@ -303,12 +303,6 @@
         const message = document.getElementById('reportMessage').value.trim();
 
         let uploadedImageUrl = null;
-        let linkedAnimalId = null;
-
-        if (selectedWishlistId) {
-          const targetItem = myWishlistItems.find(i => i.id === selectedWishlistId);
-          if (targetItem) linkedAnimalId = targetItem.cat_id || null;
-        }
 
         // ① 圧縮画像があれば Supabase Storage (activity-images) にアップロード
         if (compressedImageBlob) {
@@ -329,57 +323,18 @@
           }
         }
 
-        // ② 名簿（volunteers）への自動登録・重複チェック
-        if (donorName !== '匿名' || donorEmail) {
-          let volQuery = supabaseClient.from('volunteers').select('id').eq('organization_id', currentOrgId);
-          if (donorEmail) {
-            volQuery = volQuery.eq('email', donorEmail);
-          } else {
-            volQuery = volQuery.eq('name', donorName);
-          }
-          const { data: existingVol } = await volQuery.maybeSingle();
-
-          if (!existingVol) {
-            await supabaseClient.from('volunteers').insert([{
-              organization_id: currentOrgId,
-              name: donorName,
-              nickname: donorName,
-              email: donorEmail,
-              role: '寄付者・サポーター',
-              member_type: 'donor'
-            }]);
-          }
-        }
-
-        // ③ 活動報告・寄付欄（activity_logs）へ自動記録
-        const { error: logError } = await supabaseClient.from('activity_logs').insert([{
-          organization_id: currentOrgId,
-          type: 'donation',
-          volunteer_name: donorName,
-          category: 'フード',
-          cat_id: linkedAnimalId,
-          title: `【物資支援】${itemTitle} × ${quantity}個`,
-          amount: quantity,
-          details: message,
-          image_url: uploadedImageUrl,
-          status: 'approved'
-        }]);
-
-        if (logError) throw logError;
-
-        // ④ 募集中の物資リスト（wishlist_items）から選ばれていた場合、数量とお礼メッセージを更新
-        if (selectedWishlistId) {
-          const targetItem = myWishlistItems.find(i => i.id === selectedWishlistId);
-          if (targetItem) {
-            await supabaseClient
-              .from('wishlist_items')
-              .update({
-                current_quantity: (targetItem.current_quantity || 0) + quantity,
-                thank_you_note: message
-              })
-              .eq('id', selectedWishlistId);
-          }
-        }
+        // ② 名簿登録・活動ログ記録・数量更新はRPC（record_supplies_support）で一括実行
+        const { error: rpcError } = await supabaseClient.rpc('record_supplies_support', {
+          p_org_id: currentOrgId,
+          p_donor_name: donorName,
+          p_donor_email: donorEmail,
+          p_item_title: itemTitle,
+          p_quantity: quantity,
+          p_message: message,
+          p_image_url: uploadedImageUrl,
+          p_item_id: selectedWishlistId || null
+        });
+        if (rpcError) throw rpcError;
 
         alert('🎉 支援報告の登録が完了しました！名簿・活動報告・サンクス掲示板に反映されました🐾');
 

@@ -232,7 +232,7 @@
 .select(`
   *,
   cats ( name, image_url ),
-  organizations ( name, delivery_type, postal_code, address, contact_info, amazon_wishlist_url )
+  organizations ( name, delivery_type, amazon_wishlist_url )
 `)
           .eq('status', 'active')
           .order('is_urgent', { ascending: false })
@@ -268,7 +268,6 @@
         const visual = getItemVisual(item);
         const org = item.organizations || {};
         const orgName = org.name || '登録ボランティア団体';
-        const orgContact = org.contact_info || '';
         const isWishlistMode = org.delivery_type === 'wishlist';
 
         const percent = Math.min(100, Math.round((item.current_quantity / item.target_quantity) * 100));
@@ -300,9 +299,8 @@
             </div>
           `;
         } else {
-          const fullAddress = `${org.postal_code ? '〒' + org.postal_code + ' ' : ''}${org.address || '住所未設定'}`;
-          // 住所そのものは初期HTMLに入れず、ボタンを押した時点で deliveryStore から描画する
-          deliveryStore[addressId] = { fullAddress, orgContact };
+          // 住所は初期取得に含めず、ボタンを押した時点でRPCから取得する（団体IDだけ保持）
+          deliveryStore[addressId] = { orgId: item.organization_id };
           deliveryHtml = `
             <div class="bg-amber-50/80 border border-amber-200 rounded-lg p-3 text-xs space-y-2">
               <div class="flex items-center justify-between">
@@ -425,11 +423,23 @@
       });
     }
 
-    // 📦 「この物資を送る」ボタンで初めて発送先を描画する（初期HTMLには住所を含めない）
-    function revealAddress(key) {
+    // 📦 「この物資を送る」ボタンで初めて発送先を取得・描画する（初期データに住所を含めない）
+    async function revealAddress(key) {
       const data = deliveryStore[key];
       const el = document.getElementById(key);
       if (!data || !el) return;
+
+      if (!data.fullAddress) {
+        el.innerHTML = '<p class="text-[11px] text-gray-500 pt-2">発送先を取得しています…</p>';
+        const { data: rows, error } = await supabaseClient.rpc('get_org_delivery_address', { p_org_id: data.orgId });
+        const row = (!error && rows && rows[0]) ? rows[0] : null;
+        if (!row) {
+          el.innerHTML = '<p class="text-[11px] text-red-600 pt-2">発送先を取得できませんでした。時間をおいてもう一度お試しください。</p>';
+          return;
+        }
+        data.fullAddress = `${row.postal_code ? '〒' + row.postal_code + ' ' : ''}${row.address || '住所未設定'}`;
+        data.orgContact = row.contact_info || '';
+      }
 
       el.innerHTML = `
         <div class="pt-2 border-t border-amber-200 space-y-2">

@@ -638,11 +638,9 @@ let isSignupMode = false;
     async function loadOrganizationProfile() {
       if (!currentUser) return;
 
-      const { data, error } = await supabaseClient
-        .from('organizations')
-        .select('*')
-       .eq('owner_user_id', currentUser.id)
-        .maybeSingle();
+      // 住所等を含む自団体の全列はRPC（get_own_org）経由で取得する
+      const { data: ownRows, error } = await supabaseClient.rpc('get_own_org');
+      const data = ownRows && ownRows[0];
 
       if (!error && data) {
   hasOrgProfile = true;

@@ -717,18 +717,15 @@ let isSignupMode = false;
       }
 
       try {
-        const { error } = await supabaseClient
-         .from('organizations')
-.upsert({
-owner_user_id: currentUser.id,
-name,
-            contact_info: contactInfo,
-            delivery_type: deliveryType,
-            postal_code: postalCode,
-            address,
-            amazon_wishlist_url: amazonWishlistUrl,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'owner_user_id'});
+        // 保存はRPC（save_own_org）経由：organizations の列権限を絞ったため upsert は使わない
+        const { error } = await supabaseClient.rpc('save_own_org', {
+          p_name: name,
+          p_contact_info: contactInfo,
+          p_delivery_type: deliveryType,
+          p_postal_code: postalCode,
+          p_address: address,
+          p_amazon_wishlist_url: amazonWishlistUrl
+        });
 
         if (error) throw error;
 

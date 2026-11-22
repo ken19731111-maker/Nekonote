@@ -478,6 +478,12 @@ let isSignupMode = false;
       if (inviteOrg.owner_user_id && inviteOrg.owner_user_id !== user.id) {
         return '🔒 この団体（' + escapeHtml(inviteOrg.name) + '）は、既に別のアカウントで登録されています。<br>団体の管理者アカウントでログインし直してください。心当たりがない場合は運営へご連絡ください。';
       }
+      if (inviteOrg.owner_user_id === user.id) {
+        // 自分がオーナーの団体なら、保存済みの招待slugは役目を終えたので掃除してバナーも消す
+        try { localStorage.removeItem('nekonote_invite_slug'); } catch (e) {}
+        const banner = document.getElementById('inviteBanner');
+        if (banner) banner.classList.add('hidden');
+      }
       return null;
     }
 

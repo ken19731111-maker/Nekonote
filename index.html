@@ -457,7 +457,7 @@ let isSignupMode = false;
           .update({ owner_user_id: user.id })
           .eq('id', inviteOrg.id)
           .is('owner_user_id', null)
-          .select()
+          .select('id, name, owner_user_id')
           .maybeSingle();
         if (!error && claimed) {
           inviteOrg = claimed;

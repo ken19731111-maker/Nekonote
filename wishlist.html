@@ -113,8 +113,8 @@
     const SUPABASE_ANON_KEY = 'sb_publishable_bXjpXwx8EY2PBn3E6FqT8A_3s18sjFJ';
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const AMAZON_ASSOCIATE_TAG = ''; 
-    const RAKUTEN_AFFILIATE_ID = ''; 
+    const AMAZON_ASSOCIATE_TAG = 'nekonote09e-22'; 
+    const RAKUTEN_AFFILIATE_ID = '59d50cc1.68a28374'; 
 
     const wishlistGrid = document.getElementById('wishlistGrid');
     const loadingState = document.getElementById('loadingState');
@@ -243,12 +243,15 @@
 
     function buildAmazonSearchUrl(keyword) {
       const encoded = encodeURIComponent(keyword);
-      return `https://www.amazon.co.jp/s?k=${encoded}`;
+      const tag = AMAZON_ASSOCIATE_TAG ? `&tag=${AMAZON_ASSOCIATE_TAG}` : '';
+      return `https://www.amazon.co.jp/s?k=${encoded}${tag}`;
     }
 
     function buildRakutenSearchUrl(keyword) {
       const encoded = encodeURIComponent(keyword);
-      return `https://search.rakuten.co.jp/search/mall/${encoded}/`;
+      const target = `https://search.rakuten.co.jp/search/mall/${encoded}/`;
+      if (!RAKUTEN_AFFILIATE_ID) return target;
+      return `https://hb.afl.rakuten.co.jp/hgc/${RAKUTEN_AFFILIATE_ID}/?pc=${encodeURIComponent(target)}&m=${encodeURIComponent(target)}`;
     }
 
     async function loadWishlist() {
